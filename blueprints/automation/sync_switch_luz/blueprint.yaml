@@ -1,0 +1,711 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║          BLUEPRINT: Vincular Interruptores con Luces CCT                   ║
+# ╠══════════════════════════════════════════════════════════════════════════════╣
+# ║  Descripción : Sincroniza N parejas interruptor↔luz en una sola            ║
+# ║                instancia. Soporta hasta 10 parejas con parámetros          ║
+# ║                individuales de brillo y temperatura de color.              ║
+# ║                                                                            ║
+# ║  Autor       : Eduardo Sánchez Curiel                                      ║
+# ║  Empresa     : EVOTECH LTDA                                                ║
+# ║  País        : Colombia                                                    ║
+# ║  Web         : www.evotechltda.com                                         ║
+# ║  Contacto    : admin@evotechltda.com                                       ║
+# ║                                                                            ║
+# ║  Versión     : 1.2.0                                                       ║
+# ║  Fecha       : 2025-05-20                                                  ║
+# ║  Licencia    : MIT — libre uso, copia y modificación con crédito al autor  ║
+# ║                                                                            ║
+# ║  Requisitos  : Home Assistant 2024.4 o superior                            ║
+# ║                                                                            ║
+# ║  Changelog   :                                                             ║
+# ║    1.2.0 (2025-05-20) — Logs con nombre de automatización y nº de pareja  ║
+# ║                         Verificación previa evita warning de HA            ║
+# ║                         "Referenced entities are missing"                  ║
+# ║    1.1.0 (2025-05-20) — Ampliado a 10 parejas                             ║
+# ║    1.0.0 (2025-05-20) — Versión inicial con 5 parejas, logging y          ║
+# ║                         comprobaciones de disponibilidad                   ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+blueprint:
+  name: "Vincular interruptores con luces (hasta 10 parejas)"
+  description: >
+    **By EVOTECH LTDA · Eduardo Sánchez Curiel · Colombia**
+
+
+    Sincroniza hasta 10 parejas interruptor↔luz en una sola instancia.
+
+    - Interruptor ON/OFF → enciende/apaga la luz con brillo y temperatura definidos.
+
+    - Luz ON/OFF → enciende/apaga el interruptor.
+
+    - Cada pareja puede tener su propio brillo y temperatura, o usar los valores por defecto.
+
+    - Incluye protecciones ante entidades no disponibles y registro de eventos en el log de HA.
+
+
+    Versión 1.1.0 · www.evotechltda.com · admin@evotechltda.com
+
+  domain: automation
+
+  # Versión mínima de HA requerida (secciones plegables desde 2024.4)
+  homeassistant:
+    min_version: "2024.4.0"
+
+  # Campos reconocidos por el directorio oficial de HA
+  author: "Eduardo Sánchez Curiel — EVOTECH LTDA"
+  source_url: "https://github.com/TU_USUARIO/ha-blueprints/blob/main/blueprints/automation/sync_switch_luz/blueprint.yaml"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  PARÁMETROS DE ENTRADA
+  #  Pareja 1 visible por defecto. Parejas 2–10 colapsadas.
+  #  Expande solo las que necesites; las vacías se ignoran automáticamente.
+  # ────────────────────────────────────────────────────────────────────────────
+  input:
+
+    # ── Valores globales por defecto ─────────────────────────────────────────
+    seccion_defaults:
+      name: "⚙ Valores por defecto"
+      collapsed: false
+      input:
+        brillo_default:
+          name: Brillo por defecto (%)
+          description: >
+            Porcentaje de brillo al encender (1–100).
+            Se usa cuando la pareja no define su propio brillo.
+          default: 55
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+        temperatura_default:
+          name: Temperatura de color por defecto
+          description: >
+            En Kelvin: 2700 = cálido · 4000 = neutro · 6500 = frío.
+            Se usa cuando la pareja no define su propia temperatura.
+          default: 6500
+          selector:
+            number:
+              min: 2700
+              max: 6500
+              step: 100
+              unit_of_measurement: K
+              mode: slider
+
+    # ── Pareja 1 (obligatoria) ────────────────────────────────────────────────
+    pareja_1:
+      name: "💡 Pareja 1"
+      collapsed: false
+      input:
+        interruptor_1:
+          name: Interruptor
+          description: "Switch Sonoff u otro interruptor WiFi integrado en HA."
+          selector:
+            entity:
+              domain: switch
+        luz_1:
+          name: Luz
+          description: "Controlador LED CCT u otra luz integrada en HA."
+          selector:
+            entity:
+              domain: light
+        brillo_1:
+          name: Brillo % (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+        temperatura_1:
+          name: Temperatura de color en K (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 6500
+              step: 100
+              unit_of_measurement: K
+              mode: slider
+
+    # ── Parejas 2–10 (opcionales, colapsadas) ────────────────────────────────
+    # Expande la sección, asigna interruptor y luz, y guarda.
+    # Si dejas los campos vacíos el blueprint los ignora automáticamente.
+
+    pareja_2:
+      name: "💡 Pareja 2  (opcional)"
+      collapsed: true
+      input:
+        interruptor_2:
+          name: Interruptor
+          default:
+          selector:
+            entity:
+              domain: switch
+        luz_2:
+          name: Luz
+          default:
+          selector:
+            entity:
+              domain: light
+        brillo_2:
+          name: Brillo % (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+        temperatura_2:
+          name: Temperatura de color en K (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 6500
+              step: 100
+              unit_of_measurement: K
+              mode: slider
+
+    pareja_3:
+      name: "💡 Pareja 3  (opcional)"
+      collapsed: true
+      input:
+        interruptor_3:
+          name: Interruptor
+          default:
+          selector:
+            entity:
+              domain: switch
+        luz_3:
+          name: Luz
+          default:
+          selector:
+            entity:
+              domain: light
+        brillo_3:
+          name: Brillo % (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+        temperatura_3:
+          name: Temperatura de color en K (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 6500
+              step: 100
+              unit_of_measurement: K
+              mode: slider
+
+    pareja_4:
+      name: "💡 Pareja 4  (opcional)"
+      collapsed: true
+      input:
+        interruptor_4:
+          name: Interruptor
+          default:
+          selector:
+            entity:
+              domain: switch
+        luz_4:
+          name: Luz
+          default:
+          selector:
+            entity:
+              domain: light
+        brillo_4:
+          name: Brillo % (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+        temperatura_4:
+          name: Temperatura de color en K (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 6500
+              step: 100
+              unit_of_measurement: K
+              mode: slider
+
+    pareja_5:
+      name: "💡 Pareja 5  (opcional)"
+      collapsed: true
+      input:
+        interruptor_5:
+          name: Interruptor
+          default:
+          selector:
+            entity:
+              domain: switch
+        luz_5:
+          name: Luz
+          default:
+          selector:
+            entity:
+              domain: light
+        brillo_5:
+          name: Brillo % (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+        temperatura_5:
+          name: Temperatura de color en K (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 6500
+              step: 100
+              unit_of_measurement: K
+              mode: slider
+
+    pareja_6:
+      name: "💡 Pareja 6  (opcional)"
+      collapsed: true
+      input:
+        interruptor_6:
+          name: Interruptor
+          default:
+          selector:
+            entity:
+              domain: switch
+        luz_6:
+          name: Luz
+          default:
+          selector:
+            entity:
+              domain: light
+        brillo_6:
+          name: Brillo % (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+        temperatura_6:
+          name: Temperatura de color en K (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 6500
+              step: 100
+              unit_of_measurement: K
+              mode: slider
+
+    pareja_7:
+      name: "💡 Pareja 7  (opcional)"
+      collapsed: true
+      input:
+        interruptor_7:
+          name: Interruptor
+          default:
+          selector:
+            entity:
+              domain: switch
+        luz_7:
+          name: Luz
+          default:
+          selector:
+            entity:
+              domain: light
+        brillo_7:
+          name: Brillo % (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+        temperatura_7:
+          name: Temperatura de color en K (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 6500
+              step: 100
+              unit_of_measurement: K
+              mode: slider
+
+    pareja_8:
+      name: "💡 Pareja 8  (opcional)"
+      collapsed: true
+      input:
+        interruptor_8:
+          name: Interruptor
+          default:
+          selector:
+            entity:
+              domain: switch
+        luz_8:
+          name: Luz
+          default:
+          selector:
+            entity:
+              domain: light
+        brillo_8:
+          name: Brillo % (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+        temperatura_8:
+          name: Temperatura de color en K (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 6500
+              step: 100
+              unit_of_measurement: K
+              mode: slider
+
+    pareja_9:
+      name: "💡 Pareja 9  (opcional)"
+      collapsed: true
+      input:
+        interruptor_9:
+          name: Interruptor
+          default:
+          selector:
+            entity:
+              domain: switch
+        luz_9:
+          name: Luz
+          default:
+          selector:
+            entity:
+              domain: light
+        brillo_9:
+          name: Brillo % (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+        temperatura_9:
+          name: Temperatura de color en K (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 6500
+              step: 100
+              unit_of_measurement: K
+              mode: slider
+
+    pareja_10:
+      name: "💡 Pareja 10  (opcional)"
+      collapsed: true
+      input:
+        interruptor_10:
+          name: Interruptor
+          default:
+          selector:
+            entity:
+              domain: switch
+        luz_10:
+          name: Luz
+          default:
+          selector:
+            entity:
+              domain: light
+        brillo_10:
+          name: Brillo % (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+        temperatura_10:
+          name: Temperatura de color en K (0 = usar valor por defecto)
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 6500
+              step: 100
+              unit_of_measurement: K
+              mode: slider
+
+# ────────────────────────────────────────────────────────────────────────────
+#  VARIABLES GLOBALES
+#
+#  IMPORTANTE: !input es una directiva YAML que HA resuelve antes de procesar
+#  los templates Jinja2. Por eso cada !input debe declararse como variable
+#  simple aquí, y luego usarse dentro de los templates por su nombre.
+# ────────────────────────────────────────────────────────────────────────────
+variables:
+  bri_def: !input brillo_default
+  tmp_def: !input temperatura_default
+
+  sw1:  !input interruptor_1
+  lt1:  !input luz_1
+  bri1: !input brillo_1
+  tmp1: !input temperatura_1
+
+  sw2:  !input interruptor_2
+  lt2:  !input luz_2
+  bri2: !input brillo_2
+  tmp2: !input temperatura_2
+
+  sw3:  !input interruptor_3
+  lt3:  !input luz_3
+  bri3: !input brillo_3
+  tmp3: !input temperatura_3
+
+  sw4:  !input interruptor_4
+  lt4:  !input luz_4
+  bri4: !input brillo_4
+  tmp4: !input temperatura_4
+
+  sw5:  !input interruptor_5
+  lt5:  !input luz_5
+  bri5: !input brillo_5
+  tmp5: !input temperatura_5
+
+  sw6:  !input interruptor_6
+  lt6:  !input luz_6
+  bri6: !input brillo_6
+  tmp6: !input temperatura_6
+
+  sw7:  !input interruptor_7
+  lt7:  !input luz_7
+  bri7: !input brillo_7
+  tmp7: !input temperatura_7
+
+  sw8:  !input interruptor_8
+  lt8:  !input luz_8
+  bri8: !input brillo_8
+  tmp8: !input temperatura_8
+
+  sw9:  !input interruptor_9
+  lt9:  !input luz_9
+  bri9: !input brillo_9
+  tmp9: !input temperatura_9
+
+  sw10:  !input interruptor_10
+  lt10:  !input luz_10
+  bri10: !input brillo_10
+  tmp10: !input temperatura_10
+
+  # Lista de parejas activas: selectattr filtra las que no tienen entidades asignadas
+  parejas: >
+    {% set raw = [
+      {'sw': sw1,  'lt': lt1,  'bri': bri1,  'tmp': tmp1},
+      {'sw': sw2,  'lt': lt2,  'bri': bri2,  'tmp': tmp2},
+      {'sw': sw3,  'lt': lt3,  'bri': bri3,  'tmp': tmp3},
+      {'sw': sw4,  'lt': lt4,  'bri': bri4,  'tmp': tmp4},
+      {'sw': sw5,  'lt': lt5,  'bri': bri5,  'tmp': tmp5},
+      {'sw': sw6,  'lt': lt6,  'bri': bri6,  'tmp': tmp6},
+      {'sw': sw7,  'lt': lt7,  'bri': bri7,  'tmp': tmp7},
+      {'sw': sw8,  'lt': lt8,  'bri': bri8,  'tmp': tmp8},
+      {'sw': sw9,  'lt': lt9,  'bri': bri9,  'tmp': tmp9},
+      {'sw': sw10, 'lt': lt10, 'bri': bri10, 'tmp': tmp10},
+    ] %}
+    {{ raw | selectattr('sw') | selectattr('lt') | list }}
+
+# ────────────────────────────────────────────────────────────────────────────
+#  TRIGGER
+#  Escucha el evento global state_changed. El filtrado ocurre en condiciones.
+# ────────────────────────────────────────────────────────────────────────────
+trigger:
+  - platform: event
+    event_type: state_changed
+
+# ────────────────────────────────────────────────────────────────────────────
+#  CONDICIONES (todas deben cumplirse para continuar)
+# ────────────────────────────────────────────────────────────────────────────
+condition:
+
+  # 1. Protección: old_state y new_state no sean null
+  #    Ocurre cuando HA añade o elimina una entidad en caliente.
+  - condition: template
+    value_template: >
+      {{ trigger.event.data.old_state is not none and
+         trigger.event.data.new_state is not none }}
+
+  # 2. La entidad pertenece a alguna pareja activa.
+  #    Descarta el 99% de eventos de HA que no son relevantes.
+  - condition: template
+    value_template: >
+      {% set eid      = trigger.event.data.entity_id %}
+      {% set switches = parejas | map(attribute='sw') | list %}
+      {% set lights   = parejas | map(attribute='lt') | list %}
+      {{ eid in switches or eid in lights }}
+
+  # 3. El estado realmente cambió y es accionable (on/off).
+  #    Descarta: unavailable, unknown, cambios de atributos sin cambio de estado.
+  - condition: template
+    value_template: >
+      {% set ns = trigger.event.data.new_state.state %}
+      {% set os = trigger.event.data.old_state.state %}
+      {{ ns != os and ns in ['on', 'off'] }}
+
+# ────────────────────────────────────────────────────────────────────────────
+#  ACCIÓN
+#  Recorre todas las parejas activas. Para cada una:
+#    · Si cambió el switch → comanda la luz  (con verificación previa)
+#    · Si cambió la luz    → comanda el switch (con verificación previa)
+#  La comparación states(destino) != new_state evita bucles de feedback.
+# ────────────────────────────────────────────────────────────────────────────
+action:
+  - variables:
+      eid:       "{{ trigger.event.data.entity_id }}"
+      new_state: "{{ trigger.event.data.new_state.state }}"
+      # Nombre de esta automatización — aparece en cada línea del log
+      # para distinguirla de otras instancias del mismo blueprint
+      auto_name: "{{ this.attributes.friendly_name | default(this.entity_id) }}"
+
+  - repeat:
+      for_each: "{{ parejas }}"
+      sequence:
+
+        # Resolver parámetros de esta pareja.
+        # bri/tmp en 0 → usar el valor global por defecto.
+        - variables:
+            sw:   "{{ repeat.item.sw }}"
+            lt:   "{{ repeat.item.lt }}"
+            bri:  "{{ repeat.item.bri | int if repeat.item.bri | int > 0 else bri_def }}"
+            temp: "{{ repeat.item.tmp | int if repeat.item.tmp | int > 0 else tmp_def }}"
+            # Número de pareja dentro del bucle (para el log)
+            par:  "{{ repeat.index }}"
+
+        - choose:
+
+            # ── CASO A: El interruptor cambió → actuar sobre la luz ──────────
+            - conditions:
+                - "{{ eid == sw and states(lt) != new_state }}"
+              sequence:
+                # Verificación doble antes de llamar el servicio:
+                # 1. Estado no sea unavailable/unknown
+                # 2. La entidad exista en el registro de HA (has_value)
+                # Esto evita el warning "Referenced entities are missing"
+                # que genera HA en helpers/target.py cuando se llama
+                # un servicio sobre una entidad inexistente o no disponible.
+                - if:
+                    - "{{ states(lt) in ['unavailable', 'unknown'] or
+                           not integration_entities(lt | regex_replace('\\..+',''))
+                           | default([lt], true) | select('eq', lt) | list | count > 0
+                           if false else
+                           not has_value(lt) if states(lt) == 'unknown' else
+                           states(lt) in ['unavailable', 'unknown'] }}"
+                  then:
+                    - service: system_log.write
+                      data:
+                        level: warning
+                        logger: "blueprint.sync_switch_luz"
+                        message: >
+                          [{{ auto_name }}] Pareja {{ par }} — OMITIDO Switch→Luz:
+                          '{{ lt }}' no disponible (estado: '{{ states(lt) }}').
+                          Origen: '{{ sw }}' cambió a {{ new_state | upper }}.
+                          Acción requerida: verifica la conexión de '{{ lt }}'.
+                  else:
+                    - if:
+                        - "{{ new_state == 'on' }}"
+                      then:
+                        - service: light.turn_on
+                          target:
+                            entity_id: "{{ lt }}"
+                          data:
+                            brightness_pct:    "{{ bri  | int }}"
+                            color_temp_kelvin: "{{ temp | int }}"
+                        - service: system_log.write
+                          data:
+                            level: info
+                            logger: "blueprint.sync_switch_luz"
+                            message: >
+                              [{{ auto_name }}] Pareja {{ par }} — Switch→Luz:
+                              '{{ sw }}' → ON → '{{ lt }}' encendida
+                              (brillo={{ bri }}%, CT={{ temp }}K)
+                      else:
+                        - service: light.turn_off
+                          target:
+                            entity_id: "{{ lt }}"
+                        - service: system_log.write
+                          data:
+                            level: info
+                            logger: "blueprint.sync_switch_luz"
+                            message: >
+                              [{{ auto_name }}] Pareja {{ par }} — Switch→Luz:
+                              '{{ sw }}' → OFF → '{{ lt }}' apagada
+
+            # ── CASO B: La luz cambió → actuar sobre el interruptor ──────────
+            - conditions:
+                - "{{ eid == lt and states(sw) != new_state }}"
+              sequence:
+                - if:
+                    - "{{ states(sw) in ['unavailable', 'unknown'] }}"
+                  then:
+                    - service: system_log.write
+                      data:
+                        level: warning
+                        logger: "blueprint.sync_switch_luz"
+                        message: >
+                          [{{ auto_name }}] Pareja {{ par }} — OMITIDO Luz→Switch:
+                          '{{ sw }}' no disponible (estado: '{{ states(sw) }}').
+                          Origen: '{{ lt }}' cambió a {{ new_state | upper }}.
+                          Acción requerida: verifica la conexión de '{{ sw }}'.
+                  else:
+                    - service: "switch.turn_{{ new_state }}"
+                      target:
+                        entity_id: "{{ sw }}"
+                    - service: system_log.write
+                      data:
+                        level: info
+                        logger: "blueprint.sync_switch_luz"
+                        message: >
+                          [{{ auto_name }}] Pareja {{ par }} — Luz→Switch:
+                          '{{ lt }}' → {{ new_state | upper }} →
+                          '{{ sw }}' puesto en {{ new_state | upper }}
+
+# ────────────────────────────────────────────────────────────────────────────
+#  MODO DE EJECUCIÓN
+#  queued      : encola eventos si llegan mientras hay uno procesándose.
+#  max 10      : cola máxima de 10 eventos (cubre las 10 parejas).
+#  max_exceeded: descarta silenciosamente si la cola se llena.
+# ────────────────────────────────────────────────────────────────────────────
+mode: queued
+max: 10
+max_exceeded: silent
