@@ -16,15 +16,25 @@ Colección de blueprints para Home Assistant desarrollados por **EVOTECH LTDA**.
 
 ### 💡 Vincular Interruptores con Luces (hasta 10 parejas)
 
-Sincroniza hasta **10 parejas interruptor↔luz** en una sola instancia.
-Ideal para vincular un Sonoff con un controlador LED CCT WiFi.
+En muchas instalaciones domóticas modernas conviven interruptores WiFi o Zigbee
+con tiras LED controladas por un controlador WiFi independiente. Aunque físicamente
+el interruptor **no está cableado** a la tira LED, con este blueprint logramos
+una sincronización **lógica** bidireccional: el interruptor actúa como si estuviera
+directamente conectado a la luz, y viceversa.
+
+Es ideal cuando tienes varios de estos casos repartidos por la casa — sala, cuarto,
+cocina, pasillo — y no quieres crear una automatización separada para cada uno.
+Con una sola instancia de este blueprint gestionas hasta **10 parejas** interruptor↔luz,
+cada una con sus propios ajustes de brillo y temperatura de color.
 
 **¿Qué hace?**
-- Interruptor `ON/OFF` → enciende/apaga la luz con brillo y temperatura definidos
-- Luz `ON/OFF` → enciende/apaga el interruptor
-- Cada pareja tiene sus propios ajustes de brillo y temperatura, o usa los valores globales
-- Protección ante dispositivos no disponibles
-- Registro detallado de eventos en el log de HA con nombre de automatización y número de pareja
+- Interruptor `ON/OFF` → enciende/apaga la tira LED con brillo y temperatura definidos
+- Tira LED `ON/OFF` → enciende/apaga el interruptor para mantener ambos sincronizados
+- Compatible con interruptores **WiFi** (Sonoff, Tuya, Shelly) y **Zigbee** (IKEA, Aqara, Sonoff ZB)
+- Compatible con controladores LED **WiFi CCT** (temperatura de color fría/cálida)
+- Cada pareja puede tener su propio brillo y temperatura, o usar los valores globales por defecto
+- Protección ante dispositivos desconectados o no disponibles
+- Registro detallado en el log de HA con nombre de automatización y número de pareja
 
 **Requisitos**
 - Home Assistant **2024.4** o superior
@@ -76,7 +86,7 @@ Si prefieres instalar sin el botón de importación:
 1. Descarga el archivo `blueprint.yaml`
 2. Cópialo a tu carpeta de HA:
 ```
-config/blueprints/automation/sync_switch_luz/blueprint.yaml
+config/blueprints/automation/sync_switch_luz/blueprint_multi_switch_luz.yaml
 ```
 3. En HA: **Configuración → Automatizaciones → Planos → ⋮ → Recargar planos**
 4. Crea una nueva automatización desde el plano
