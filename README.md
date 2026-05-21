@@ -32,9 +32,9 @@ Ideal para vincular un Sonoff con un controlador LED CCT WiFi.
 
 **Importar directamente en Home Assistant:**
 
-[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/TU_USUARIO/ha-blueprints/main/blueprints/automation/sync_switch_luz/blueprint.yaml)
+[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/sync_switch_luz/blueprint_multi_switch_luz.yaml)
 
-> Reemplaza `TU_USUARIO` con tu usuario de GitHub si copias el enlace manualmente.
+> Enlace directo al archivo raw en GitHub.
 
 **Configuración**
 
