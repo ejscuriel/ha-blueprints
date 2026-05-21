@@ -3,12 +3,16 @@
 # ╠══════════════════════════════════════════════════════════════════════════════╣
 # ║  Descripción : Vincula hasta 10 parejas sensor de puerta ↔ luz/switch.     ║
 # ║                                                                             ║
-# ║  Lógica de tiempos:                                                         ║
-# ║    · Puerta ABRE             → enciende luz, timer t_ab                    ║
-# ║    · Puerta CIERRA           → timer t_ce y apaga                          ║
-# ║    · Switch ON + puerta ABIERTA  → reinicia timer t_ab (como si abriera)   ║
-# ║    · Switch ON + puerta CERRADA  → timer t_mc (nuevo parámetro)            ║
-# ║    · -1 en cualquier tiempo  → encendido indefinido                        ║
+# ║  Tiempos por pareja (sin valores globales por defecto):                     ║
+# ║     0  = apaga inmediatamente (0 segundos)                                  ║
+# ║    -1  = encendido indefinido (sin apagado automático)                      ║
+# ║    >0  = segundos antes de apagar                                           ║
+# ║                                                                             ║
+# ║  Lógica:                                                                    ║
+# ║    · Puerta ABRE               → enciende luz, timer t_ab                  ║
+# ║    · Puerta CIERRA             → timer t_ce y apaga                        ║
+# ║    · Switch ON + puerta ABIERTA → reinicia timer t_ab                      ║
+# ║    · Switch ON + puerta CERRADA → timer t_mc                               ║
 # ║                                                                             ║
 # ║  Autor       : Eduardo Sánchez Curiel                                       ║
 # ║  Empresa     : EVOTECH LTDA                                                 ║
@@ -16,15 +20,16 @@
 # ║  Web         : www.evotechltda.com                                          ║
 # ║  Contacto    : admin@evotechltda.com                                        ║
 # ║                                                                             ║
-# ║  Versión     : 1.1.0                                                        ║
+# ║  Versión     : 1.2.0                                                        ║
 # ║  Fecha       : 2025-05-20                                                   ║
 # ║  Licencia    : MIT — libre uso con crédito al autor                         ║
 # ║                                                                             ║
 # ║  Requisitos  : Home Assistant 2024.4 o superior                             ║
 # ║                                                                             ║
 # ║  Changelog   :                                                              ║
-# ║    1.1.0 (2025-05-20) — Nuevo parámetro: tiempo switch manual+puerta       ║
-# ║                         cerrada. Trigger extendido a luz/switch.            ║
+# ║    1.2.0 (2025-05-20) — Eliminados valores globales por defecto.            ║
+# ║                         0 = apaga inmediato. -1 = ilimitado.               ║
+# ║    1.1.0 (2025-05-20) — Parámetro t_mc: switch manual + puerta cerrada     ║
 # ║    1.0.0 (2025-05-20) — Versión inicial                                    ║
 # ╚══════════════════════════════════════════════════════════════════════════════╝
 
@@ -38,31 +43,34 @@ blueprint:
 
 
     Vincula sensores de puerta con luces o interruptores de forma **lógica**,
-    sin cableado físico. Al abrir la puerta enciende la luz; al cerrarla la
-    mantiene encendida un tiempo adicional. Si el usuario enciende el switch
-    manualmente, se aplica el timer correspondiente según el estado de la puerta.
+    sin cableado físico. Cada pareja define sus propios tiempos de forma independiente.
+
+
+    ## Tiempos
+
+    - **`0`** = apaga inmediatamente (0 segundos de espera)
+
+    - **`-1`** = encendido **indefinido**, sin apagado automático
+
+    - **`>0`** = segundos antes de apagar automáticamente
 
 
     ## Lógica de funcionamiento
 
+    - 🔓 **Puerta ABRE** → enciende la luz. Aplica timer `t_ab`.
 
-    - 🔓 **Puerta ABRE** → enciende la luz. Timer `t_ab` activo si ≠ -1.
+    - 🔒 **Puerta CIERRA** → aplica timer `t_ce`.
 
-    - 🔒 **Puerta CIERRA** → timer `t_ce`. Si -1, queda encendida indefinidamente.
-
-    - 💡 **Switch ON manual + puerta ABIERTA** → reinicia el timer `t_ab`
+    - 💡 **Switch ON manual + puerta ABIERTA** → reinicia timer `t_ab`
       exactamente como si la puerta se acabara de abrir.
 
-    - 💡 **Switch ON manual + puerta CERRADA** → aplica timer `t_mc`
-      (tiempo específico para encendido manual con puerta cerrada).
+    - 💡 **Switch ON manual + puerta CERRADA** → aplica timer `t_mc`.
 
-    - ⏱ **-1 en cualquier tiempo** → encendido **indefinido**, sin apagado automático.
-
-    - 🔄 Si la puerta cambia de estado mientras hay un timer activo,
-      el timer se reinicia con el nuevo estado (mode restart).
+    - 🔄 Si la puerta cambia mientras hay un timer activo, el timer
+      se reinicia con el nuevo estado (mode restart).
 
 
-    Versión 1.1.0 · www.evotechltda.com · admin@evotechltda.com
+    Versión 1.2.0 · www.evotechltda.com · admin@evotechltda.com
 
   domain: automation
   homeassistant:
@@ -70,55 +78,12 @@ blueprint:
   author: "Eduardo Sánchez Curiel — EVOTECH LTDA"
   source_url: "https://github.com/ejscuriel/ha-blueprints/blob/main/blueprints/automation/door_light/BP_Multi_Door_Light.yaml"
 
+  # ────────────────────────────────────────────────────────────────────────────
+  #  PARÁMETROS DE ENTRADA
+  #  Cada pareja define sus tiempos independientemente.
+  #  0 = apaga inmediato | -1 = ilimitado | >0 = segundos
+  # ────────────────────────────────────────────────────────────────────────────
   input:
-
-    # ── Valores globales por defecto ──────────────────────────────────────────
-    seccion_defaults:
-      name: "⚙ Valores por defecto"
-      collapsed: false
-      input:
-
-        tiempo_abierta_default:
-          name: "⏱ Tiempo máximo con puerta abierta (segundos)"
-          description: >
-            Segundos encendida mientras la puerta está abierta.
-            -1 = sin límite de tiempo.
-          default: 300
-          selector:
-            number:
-              min: -1
-              max: 3600
-              step: 1
-              unit_of_measurement: s
-              mode: box
-
-        tiempo_cerrada_default:
-          name: "⏱ Tiempo encendida tras cerrar la puerta (segundos)"
-          description: >
-            Segundos encendida después de cerrar la puerta.
-            -1 = queda encendida indefinidamente.
-          default: 60
-          selector:
-            number:
-              min: -1
-              max: 3600
-              step: 1
-              unit_of_measurement: s
-              mode: box
-
-        tiempo_manual_default:
-          name: "⏱ Tiempo encendida al activar switch manual + puerta cerrada (segundos)"
-          description: >
-            Segundos encendida cuando el usuario enciende el switch manualmente
-            y la puerta está cerrada. -1 = indefinido.
-          default: 120
-          selector:
-            number:
-              min: -1
-              max: 3600
-              step: 1
-              unit_of_measurement: s
-              mode: box
 
     # ── Pareja 1 (obligatoria) ────────────────────────────────────────────────
     pareja_1:
@@ -127,8 +92,7 @@ blueprint:
       input:
         puerta_1:
           name: Sensor de puerta / ventana
-          description: >
-            Binary sensor de contacto. ON = abierta, OFF = cerrada.
+          description: "Binary sensor: ON = abierta, OFF = cerrada."
           selector:
             entity:
               domain: binary_sensor
@@ -139,8 +103,9 @@ blueprint:
           selector:
             target:
         tiempo_abierta_1:
-          name: "Tiempo puerta abierta en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ab — Tiempo con puerta abierta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 300
           selector:
             number:
               min: -1
@@ -149,8 +114,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_cerrada_1:
-          name: "Tiempo tras cerrar en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ce — Tiempo tras cerrar puerta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 60
           selector:
             number:
               min: -1
@@ -159,8 +125,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_manual_1:
-          name: "Tiempo switch manual + puerta cerrada en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_mc — Tiempo switch manual + puerta cerrada (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 120
           selector:
             number:
               min: -1
@@ -187,8 +154,9 @@ blueprint:
           selector:
             target:
         tiempo_abierta_2:
-          name: "Tiempo puerta abierta en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ab — Tiempo con puerta abierta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 300
           selector:
             number:
               min: -1
@@ -197,8 +165,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_cerrada_2:
-          name: "Tiempo tras cerrar en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ce — Tiempo tras cerrar puerta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 60
           selector:
             number:
               min: -1
@@ -207,8 +176,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_manual_2:
-          name: "Tiempo switch manual + puerta cerrada en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_mc — Tiempo switch manual + puerta cerrada (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 120
           selector:
             number:
               min: -1
@@ -235,8 +205,9 @@ blueprint:
           selector:
             target:
         tiempo_abierta_3:
-          name: "Tiempo puerta abierta en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ab — Tiempo con puerta abierta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 300
           selector:
             number:
               min: -1
@@ -245,8 +216,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_cerrada_3:
-          name: "Tiempo tras cerrar en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ce — Tiempo tras cerrar puerta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 60
           selector:
             number:
               min: -1
@@ -255,8 +227,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_manual_3:
-          name: "Tiempo switch manual + puerta cerrada en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_mc — Tiempo switch manual + puerta cerrada (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 120
           selector:
             number:
               min: -1
@@ -283,8 +256,9 @@ blueprint:
           selector:
             target:
         tiempo_abierta_4:
-          name: "Tiempo puerta abierta en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ab — Tiempo con puerta abierta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 300
           selector:
             number:
               min: -1
@@ -293,8 +267,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_cerrada_4:
-          name: "Tiempo tras cerrar en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ce — Tiempo tras cerrar puerta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 60
           selector:
             number:
               min: -1
@@ -303,8 +278,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_manual_4:
-          name: "Tiempo switch manual + puerta cerrada en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_mc — Tiempo switch manual + puerta cerrada (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 120
           selector:
             number:
               min: -1
@@ -331,8 +307,9 @@ blueprint:
           selector:
             target:
         tiempo_abierta_5:
-          name: "Tiempo puerta abierta en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ab — Tiempo con puerta abierta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 300
           selector:
             number:
               min: -1
@@ -341,8 +318,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_cerrada_5:
-          name: "Tiempo tras cerrar en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ce — Tiempo tras cerrar puerta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 60
           selector:
             number:
               min: -1
@@ -351,8 +329,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_manual_5:
-          name: "Tiempo switch manual + puerta cerrada en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_mc — Tiempo switch manual + puerta cerrada (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 120
           selector:
             number:
               min: -1
@@ -379,8 +358,9 @@ blueprint:
           selector:
             target:
         tiempo_abierta_6:
-          name: "Tiempo puerta abierta en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ab — Tiempo con puerta abierta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 300
           selector:
             number:
               min: -1
@@ -389,8 +369,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_cerrada_6:
-          name: "Tiempo tras cerrar en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ce — Tiempo tras cerrar puerta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 60
           selector:
             number:
               min: -1
@@ -399,8 +380,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_manual_6:
-          name: "Tiempo switch manual + puerta cerrada en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_mc — Tiempo switch manual + puerta cerrada (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 120
           selector:
             number:
               min: -1
@@ -427,8 +409,9 @@ blueprint:
           selector:
             target:
         tiempo_abierta_7:
-          name: "Tiempo puerta abierta en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ab — Tiempo con puerta abierta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 300
           selector:
             number:
               min: -1
@@ -437,8 +420,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_cerrada_7:
-          name: "Tiempo tras cerrar en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ce — Tiempo tras cerrar puerta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 60
           selector:
             number:
               min: -1
@@ -447,8 +431,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_manual_7:
-          name: "Tiempo switch manual + puerta cerrada en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_mc — Tiempo switch manual + puerta cerrada (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 120
           selector:
             number:
               min: -1
@@ -475,8 +460,9 @@ blueprint:
           selector:
             target:
         tiempo_abierta_8:
-          name: "Tiempo puerta abierta en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ab — Tiempo con puerta abierta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 300
           selector:
             number:
               min: -1
@@ -485,8 +471,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_cerrada_8:
-          name: "Tiempo tras cerrar en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ce — Tiempo tras cerrar puerta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 60
           selector:
             number:
               min: -1
@@ -495,8 +482,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_manual_8:
-          name: "Tiempo switch manual + puerta cerrada en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_mc — Tiempo switch manual + puerta cerrada (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 120
           selector:
             number:
               min: -1
@@ -523,8 +511,9 @@ blueprint:
           selector:
             target:
         tiempo_abierta_9:
-          name: "Tiempo puerta abierta en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ab — Tiempo con puerta abierta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 300
           selector:
             number:
               min: -1
@@ -533,8 +522,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_cerrada_9:
-          name: "Tiempo tras cerrar en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ce — Tiempo tras cerrar puerta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 60
           selector:
             number:
               min: -1
@@ -543,8 +533,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_manual_9:
-          name: "Tiempo switch manual + puerta cerrada en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_mc — Tiempo switch manual + puerta cerrada (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 120
           selector:
             number:
               min: -1
@@ -571,8 +562,9 @@ blueprint:
           selector:
             target:
         tiempo_abierta_10:
-          name: "Tiempo puerta abierta en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ab — Tiempo con puerta abierta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 300
           selector:
             number:
               min: -1
@@ -581,8 +573,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_cerrada_10:
-          name: "Tiempo tras cerrar en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_ce — Tiempo tras cerrar puerta (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 60
           selector:
             number:
               min: -1
@@ -591,8 +584,9 @@ blueprint:
               unit_of_measurement: s
               mode: box
         tiempo_manual_10:
-          name: "Tiempo switch manual + puerta cerrada en s (0 = defecto | -1 = ilimitado)"
-          default: 0
+          name: "⏱ t_mc — Tiempo switch manual + puerta cerrada (s)"
+          description: "0 = apaga inmediato | -1 = ilimitado | >0 = segundos"
+          default: 120
           selector:
             number:
               min: -1
@@ -604,12 +598,9 @@ blueprint:
 # ────────────────────────────────────────────────────────────────────────────
 #  VARIABLES
 #  Cada !input declarado individualmente — no puede usarse dentro de Jinja2.
+#  Sin valores globales por defecto: cada pareja gestiona sus propios tiempos.
 # ────────────────────────────────────────────────────────────────────────────
 variables:
-  t_ab_def: !input tiempo_abierta_default
-  t_ce_def: !input tiempo_cerrada_default
-  t_mc_def: !input tiempo_manual_default
-
   p1:  !input puerta_1
   l1:  !input luz_1
   a1:  !input tiempo_abierta_1
@@ -687,9 +678,7 @@ variables:
     {{ raw | selectattr('p') | list }}
 
 # ────────────────────────────────────────────────────────────────────────────
-#  TRIGGER
-#  Escucha el evento global state_changed.
-#  Filtra en condiciones: sensores de puerta Y luz/switch de las parejas.
+#  TRIGGER — evento global state_changed
 # ────────────────────────────────────────────────────────────────────────────
 trigger:
   - platform: event
@@ -700,14 +689,13 @@ trigger:
 # ────────────────────────────────────────────────────────────────────────────
 condition:
 
-  # 1. Protección: old_state y new_state deben existir (entidad añadida/eliminada)
+  # 1. Protección: old_state y new_state deben existir
   - condition: template
     value_template: >
       {{ trigger.event.data.old_state is not none and
          trigger.event.data.new_state is not none }}
 
-  # 2. La entidad pertenece a alguna pareja activa
-  #    — ya sea el sensor de puerta O la luz/switch asociada
+  # 2. La entidad es un sensor de puerta de alguna pareja activa
   - condition: template
     value_template: >
       {% set eid     = trigger.event.data.entity_id %}
@@ -715,7 +703,6 @@ condition:
       {{ eid in puertas }}
 
   # 3. Estado cambió y es válido (on/off)
-  #    Descarta: unavailable, unknown, cambios de atributos sin cambio de estado
   - condition: template
     value_template: >
       {% set ns = trigger.event.data.new_state.state %}
@@ -725,20 +712,11 @@ condition:
 # ────────────────────────────────────────────────────────────────────────────
 #  ACCIÓN
 #
-#  CASO A — Puerta ABRE (on):
-#    Enciende la luz. Si t_ab != -1, apaga tras t_ab segundos
-#    (solo si la puerta sigue abierta al vencer el timer).
-#
-#  CASO B — Puerta CIERRA (off):
-#    Si t_ce != -1, apaga tras t_ce segundos
-#    (solo si la puerta sigue cerrada al vencer el timer).
-#
-#  CASO C — Switch/Luz ON manual:
-#    · Si la puerta está ABIERTA  → reinicia timer t_ab (igual que CASO A)
-#    · Si la puerta está CERRADA  → aplica timer t_mc
-#    En ambos casos solo si t != -1.
-#
-#  Resolución de tiempos: 0 → defecto global | -1 → ilimitado | otro → propio
+#  Tiempos directos — sin fallback a defaults globales:
+#    t_ab / t_ce / t_mc = valor exacto configurado en la pareja
+#    0  → apaga inmediatamente (delay 0s)
+#    -1 → sin apagado automático
+#    >0 → espera N segundos y apaga
 # ────────────────────────────────────────────────────────────────────────────
 action:
   - variables:
@@ -750,28 +728,19 @@ action:
       for_each: "{{ parejas }}"
       sequence:
 
-        # Resolver parámetros de esta pareja
+        # Tiempos directos — sin lógica de fallback
         - variables:
             p:    "{{ repeat.item.p }}"
             l:    "{{ repeat.item.l }}"
-            t_ab: >
-              {{ repeat.item.a | int
-                 if repeat.item.a | int != 0
-                 else t_ab_def | int }}
-            t_ce: >
-              {{ repeat.item.c | int
-                 if repeat.item.c | int != 0
-                 else t_ce_def | int }}
-            t_mc: >
-              {{ repeat.item.m | int
-                 if repeat.item.m | int != 0
-                 else t_mc_def | int }}
+            t_ab: "{{ repeat.item.a | int }}"
+            t_ce: "{{ repeat.item.c | int }}"
+            t_mc: "{{ repeat.item.m | int }}"
             par:  "{{ repeat.index }}"
 
         - choose:
 
             # ════════════════════════════════════════════════════════════════
-            #  CASO A — PUERTA ABRE → encender luz + timer apertura
+            #  CASO A — PUERTA ABRE → encender + timer t_ab
             # ════════════════════════════════════════════════════════════════
             - conditions:
                 - "{{ eid == p and new_state == 'on' }}"
@@ -784,7 +753,7 @@ action:
                         level: warning
                         logger: "blueprint.puerta_luz"
                         message: >
-                          [{{ auto_name }}] Pareja {{ par }} — OMITIDO Puerta→Luz:
+                          [{{ auto_name }}] Pareja {{ par }} — OMITIDO Puerta ABRE:
                           Sensor '{{ p }}' no disponible ({{ states(p) }}).
                           Verifica batería o conectividad del sensor.
                   else:
@@ -797,12 +766,13 @@ action:
                         message: >
                           [{{ auto_name }}] Pareja {{ par }} — Puerta ABIERTA →
                           Luz encendida.
-                          Timer apertura: {{ 'ilimitado' if t_ab == -1 else t_ab | string ~ 's' }}.
+                          t_ab: {{ 'ilimitado' if t_ab == -1 else t_ab | string ~ 's' }}.
+                    # Timer t_ab: solo si != -1
                     - if:
-                        - "{{ t_ab | int != -1 }}"
+                        - "{{ t_ab != -1 }}"
                       then:
                         - delay:
-                            seconds: "{{ t_ab | int }}"
+                            seconds: "{{ t_ab }}"
                         - if:
                             - "{{ states(p) == 'on' }}"
                           then:
@@ -813,19 +783,19 @@ action:
                                 level: info
                                 logger: "blueprint.puerta_luz"
                                 message: >
-                                  [{{ auto_name }}] Pareja {{ par }} — Timer apertura
-                                  agotado ({{ t_ab }}s), puerta aún abierta → Luz apagada.
+                                  [{{ auto_name }}] Pareja {{ par }} — t_ab agotado
+                                  ({{ t_ab }}s), puerta aún abierta → Luz apagada.
                           else:
                             - service: system_log.write
                               data:
                                 level: info
                                 logger: "blueprint.puerta_luz"
                                 message: >
-                                  [{{ auto_name }}] Pareja {{ par }} — Timer apertura
-                                  vencido pero puerta ya cerrada. Control → timer cierre.
+                                  [{{ auto_name }}] Pareja {{ par }} — t_ab vencido
+                                  pero puerta ya cerrada → control a t_ce.
 
             # ════════════════════════════════════════════════════════════════
-            #  CASO B — PUERTA CIERRA → timer de apagado tras cierre
+            #  CASO B — PUERTA CIERRA → timer t_ce
             # ════════════════════════════════════════════════════════════════
             - conditions:
                 - "{{ eid == p and new_state == 'off' }}"
@@ -836,12 +806,13 @@ action:
                     logger: "blueprint.puerta_luz"
                     message: >
                       [{{ auto_name }}] Pareja {{ par }} — Puerta CERRADA.
-                      Timer cierre: {{ 'nunca (ilimitado)' if t_ce == -1 else t_ce | string ~ 's' }}.
+                      t_ce: {{ 'ilimitado' if t_ce == -1 else t_ce | string ~ 's' }}.
+                # Timer t_ce: solo si != -1
                 - if:
-                    - "{{ t_ce | int != -1 }}"
+                    - "{{ t_ce != -1 }}"
                   then:
                     - delay:
-                        seconds: "{{ t_ce | int }}"
+                        seconds: "{{ t_ce }}"
                     - if:
                         - "{{ states(p) == 'off' }}"
                       then:
@@ -852,28 +823,21 @@ action:
                             level: info
                             logger: "blueprint.puerta_luz"
                             message: >
-                              [{{ auto_name }}] Pareja {{ par }} — Timer cierre
-                              agotado ({{ t_ce }}s) → Luz apagada.
+                              [{{ auto_name }}] Pareja {{ par }} — t_ce agotado
+                              ({{ t_ce }}s) → Luz apagada.
                       else:
                         - service: system_log.write
                           data:
                             level: info
                             logger: "blueprint.puerta_luz"
                             message: >
-                              [{{ auto_name }}] Pareja {{ par }} — Timer cierre
-                              cancelado: puerta volvió a abrirse. Control → timer apertura.
+                              [{{ auto_name }}] Pareja {{ par }} — t_ce cancelado:
+                              puerta volvió a abrirse → control a t_ab.
 
 # ────────────────────────────────────────────────────────────────────────────
 #  MODO DE EJECUCIÓN
-#
-#  restart     : cancela el delay activo y reinicia la automatización cuando
-#                llega un nuevo evento. Garantiza que:
-#                  · Timer apertura se cancela si la puerta cierra antes
-#                  · Timer cierre se cancela si la puerta abre antes
-#                  · Timer manual se cancela si la puerta cambia de estado
-#                  · Nunca quedan timers huérfanos corriendo en paralelo
-#
-#  max_exceeded silent : descarta silenciosamente ante sobrecarga.
+#  restart: cancela el delay activo al llegar un nuevo evento.
+#           Garantiza que nunca queden timers huérfanos en paralelo.
 # ────────────────────────────────────────────────────────────────────────────
 mode: restart
 max_exceeded: silent
