@@ -105,8 +105,8 @@ Ideal para **entradas, pasillos, closets, bodegas, baños y garajes**.
 | Tiempo apertura vence (puerta aún abierta) | Apaga la luz automáticamente |
 | Puerta `CIERRA` | Inicia timer de cierre si ≠ -1 |
 | Tiempo cierre vence | Apaga la luz automáticamente |
-| Switch `ON` manual + puerta abierta | Aplica timer de apertura |
-| Switch `ON` manual + puerta cerrada | Aplica timer de cierre |
+| Switch `ON` manual + puerta **abierta** | Reinicia el timer de apertura como si la puerta se abriera |
+| Switch `ON` manual + puerta **cerrada** | Aplica timer específico `t_mc` (parámetro independiente) |
 | Cualquier tiempo = `-1` | Encendido **indefinido**, sin apagado automático |
 
 **Parámetros configurables:**
@@ -114,10 +114,12 @@ Ideal para **entradas, pasillos, closets, bodegas, baños y garajes**.
 |---|---|---|
 | Tiempo puerta abierta | Segundos encendida con puerta abierta (-1 = ilimitado) | 300 s |
 | Tiempo tras cierre | Segundos encendida tras cerrar (-1 = ilimitado) | 60 s |
+| Tiempo switch manual + puerta cerrada | Timer cuando se enciende manualmente con puerta cerrada (-1 = ilimitado) | 120 s |
 | Pareja N → Sensor | Binary sensor de puerta/ventana/apertura | — |
 | Pareja N → Luz/Switch | Target (acepta light.* y switch.*) | — |
 | Pareja N → Tiempo apertura | Individual (0 = usar defecto, -1 = ilimitado) | 0 |
 | Pareja N → Tiempo cierre | Individual (0 = usar defecto, -1 = ilimitado) | 0 |
+| Pareja N → Tiempo manual cerrada | Timer cuando switch se activa manualmente con puerta cerrada (0 = defecto, -1 = ilimitado) | 0 |
 
 **Log de seguimiento** (`blueprint.puerta_luz`):
 ```
@@ -132,6 +134,7 @@ WARN  [Entrada principal] Pareja 1 — OMITIDO: Sensor no disponible (unavailabl
 **Versiones:**
 | Versión | Fecha | Cambios |
 |---|---|---|
+| 1.1.0 | 2025-05-20 | Nuevo parámetro: tiempo switch manual + puerta cerrada |
 | 1.0.0 | 2025-05-20 | Versión inicial: 10 parejas, temporización y logging |
 
 [![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/door_light/BP_Multi_Door_Light.yaml)
