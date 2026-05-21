@@ -17,14 +17,35 @@ desarrollados por **Eduardo Sánchez Curiel — EVOTECH LTDA**
 
 ---
 
-## ✨ ¿Por qué estos blueprints?
+## 📦 Blueprints disponibles
 
-En instalaciones domóticas modernas conviven dispositivos de distintos fabricantes
-(Sonoff, Tuya, Zigbee, ESPHome) que necesitan trabajar juntos sin cableado físico.
-Estos blueprints cubren los casos más comunes con una sola instancia configurable,
-registro detallado en el log y protección ante fallos de conectividad.
+| # | Blueprint | Descripción rápida |
+|---|---|---|
+| 1 | 💡 [Switch ↔ Light](#-1-vincular-interruptores-con-luces-cct) | Sincroniza interruptor y luz bidireccionalmente |
+| 2 | 🚪 [Door → Light](#-2-puerta--luz--interruptor-con-temporización) | Controla luz por apertura de puerta con timers |
 
-**Características comunes a todos los blueprints:**
+---
+
+### 💡 1. Switch ↔ Light (WiFi / Zigbee)
+
+> Sincroniza interruptor y luz sin cableado físico — hasta 10 parejas
+
+[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/switch_light/BP_Multi_Switch_Light.yaml)
+🔗 [Ver código fuente](blueprints/automation/switch_light/BP_Multi_Switch_Light.yaml)
+
+---
+
+### 🚪 2. Door → Light / Switch
+
+> Enciende/apaga luz al abrir/cerrar una puerta con timers configurables — hasta 10 parejas
+
+[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/door_light/BP_Multi_Door_Light.yaml)
+🔗 [Ver código fuente](blueprints/automation/door_light/BP_Multi_Door_Light.yaml)
+
+---
+
+## ✨ Características comunes
+
 - ✅ Hasta **10 parejas** de dispositivos en una sola instancia
 - ✅ Secciones **plegables** — expande solo lo que necesitas
 - ✅ **Protección** ante dispositivos desconectados o no disponibles
@@ -34,7 +55,7 @@ registro detallado en el log y protección ante fallos de conectividad.
 
 ---
 
-## 📦 Blueprints disponibles
+## 📖 Documentación detallada
 
 ---
 
@@ -82,64 +103,62 @@ WARN  [Sala principal] Pareja 1 — OMITIDO: 'light.led_sala' no disponible
 | 1.0.0 | 2025-05-20 | Versión inicial |
 
 [![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/switch_light/BP_Multi_Switch_Light.yaml)
-
-🔗 [Ver código fuente](blueprints/automation/switch_light/switch_light.yaml)
+🔗 [Ver código fuente](blueprints/automation/switch_light/BP_Multi_Switch_Light.yaml)
 
 ---
 
 ### 🚪 2. Puerta → Luz / Interruptor con Temporización
 
-> **Control automático de iluminación por apertura de puertas con timers configurables**
+> **Control automático de iluminación por apertura de puertas con 3 timers independientes**
 
-Vincula sensores de puerta o ventana con luces o interruptores de forma **lógica**.
-Al abrir la puerta enciende la luz; al cerrarla la mantiene encendida un tiempo
-adicional antes de apagarla — como un interruptor automático de escalera o pasillo,
-pero totalmente configurable por pareja.
+Vincula hasta 10 sensores de puerta con luces o interruptores de forma **lógica**,
+sin cableado físico. Cada pareja gestiona sus propios timers de forma independiente.
+Compatible con sensores **WiFi y Zigbee** y cualquier luz o switch integrado en HA.
 
 Ideal para **entradas, pasillos, closets, bodegas, baños y garajes**.
 
 **Comportamiento:**
-| Evento | Resultado |
-|---|---|
-| Puerta `ABRE` | Enciende la luz. Timer de apertura activo si ≠ -1 |
-| Tiempo apertura vence (puerta aún abierta) | Apaga la luz automáticamente |
-| Puerta `CIERRA` | Inicia timer de cierre si ≠ -1 |
-| Tiempo cierre vence | Apaga la luz automáticamente |
-| Switch `ON` manual + puerta **abierta** | Reinicia el timer de apertura como si la puerta se abriera |
-| Switch `ON` manual + puerta **cerrada** | Aplica timer específico `t_mc` (parámetro independiente) |
-| Cualquier tiempo = `-1` | Encendido **indefinido**, sin apagado automático |
-
-**Parámetros configurables:**
-| Parámetro | Descripción | Por defecto |
+| Evento | Timer | Resultado |
 |---|---|---|
-| Tiempo puerta abierta | Segundos encendida con puerta abierta (-1 = ilimitado) | 300 s |
-| Tiempo tras cierre | Segundos encendida tras cerrar (-1 = ilimitado) | 60 s |
-| Tiempo switch manual + puerta cerrada | Timer cuando se enciende manualmente con puerta cerrada (-1 = ilimitado) | 120 s |
-| Pareja N → Sensor | Binary sensor de puerta/ventana/apertura | — |
-| Pareja N → Luz/Switch | Target (acepta light.* y switch.*) | — |
-| Pareja N → Tiempo apertura | Individual (0 = usar defecto, -1 = ilimitado) | 0 |
-| Pareja N → Tiempo cierre | Individual (0 = usar defecto, -1 = ilimitado) | 0 |
-| Pareja N → Tiempo manual cerrada | Timer cuando switch se activa manualmente con puerta cerrada (0 = defecto, -1 = ilimitado) | 0 |
+| Puerta `ABRE` | `t_ab` | Enciende + apaga tras t_ab segundos |
+| Puerta `CIERRA` | `t_ce` | Apaga tras t_ce segundos |
+| Switch `ON` manual + puerta **abierta** | `t_ab` | Reinicia el timer t_ab |
+| Switch `ON` manual + puerta **cerrada** | `t_mc` | Apaga tras t_mc segundos |
+| Cualquier timer = `0` | — | Apaga **inmediatamente** |
+| Cualquier timer = `-1` | — | Sin apagado automático (**ilimitado**) |
 
-**Log de seguimiento** (`blueprint.puerta_luz`):
+**Parámetros por pareja (cada pareja es independiente):**
+| Parámetro | Descripción | Sugerido |
+|---|---|---|
+| Sensor de puerta | Binary sensor (door, window, opening) | — |
+| Luz o interruptor | Acepta light.* y switch.* | — |
+| `t_ab` | Tiempo tras abrir puerta. 0=inmediato, -1=ilimitado | 300 s |
+| `t_ce` | Tiempo tras cerrar puerta. 0=inmediato, -1=ilimitado | 60 s |
+| `t_mc` | Tiempo encendido manual + puerta cerrada. 0=inmediato, -1=ilimitado | 120 s |
+
+**Log de seguimiento** (`blueprint.door_light`):
 ```
-INFO  [Entrada principal] Pareja 1 — Puerta ABIERTA → Luz encendida. Tiempo máximo: 300s
-INFO  [Entrada principal] Pareja 1 — Puerta CERRADA. Apagado programado en: 60s
-INFO  [Entrada principal] Pareja 1 — Tiempo tras cierre agotado (60s) → Luz apagada
-INFO  [Entrada principal] Pareja 1 — Timer cancelado: la puerta volvió a abrirse
-WARN  [Entrada principal] Pareja 1 — OMITIDO: Sensor no disponible (unavailable)
-      Acción requerida: revisar batería o conectividad del sensor.
+INFO  [Entrada] Pareja 1 — Puerta ABIERTA → 'light.led_entrada' encendido. t_ab: 300s
+INFO  [Entrada] Pareja 1 — t_ab agotado (300s), puerta aún abierta → apagado
+INFO  [Entrada] Pareja 1 — Puerta CERRADA. t_ce: 60s
+INFO  [Entrada] Pareja 1 — t_ce agotado (60s) → 'light.led_entrada' apagado
+INFO  [Entrada] Pareja 1 — Encendido MANUAL. Puerta: off. Timer (t_mc): 120s
+INFO  [Entrada] Pareja 1 — t_ce cancelado: puerta volvió a abrirse → control a t_ab
+WARN  [Entrada] Pareja 1 — OMITIDO: Sensor no disponible (unavailable)
+WARN  [Entrada] Pareja 1 — OMITIDO: Dispositivo no disponible (unavailable)
 ```
 
 **Versiones:**
 | Versión | Fecha | Cambios |
 |---|---|---|
-| 1.1.0 | 2025-05-20 | Nuevo parámetro: tiempo switch manual + puerta cerrada |
-| 1.0.0 | 2025-05-20 | Versión inicial: 10 parejas, temporización y logging |
+| 2.1.0 | 2025-05-20 | Lógica definitiva: t_ab al abrir, -1=ilimitado en todos los timers |
+| 2.0.0 | 2025-05-20 | Selector entity para detección de encendido manual |
+| 1.2.0 | 2025-05-20 | Eliminados valores globales por defecto |
+| 1.1.0 | 2025-05-20 | Parámetro t_mc: encendido manual + puerta cerrada |
+| 1.0.0 | 2025-05-20 | Versión inicial |
 
 [![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/door_light/BP_Multi_Door_Light.yaml)
-
-🔗 [Ver código fuente](blueprints/automation/door_light/door_light.yaml)
+🔗 [Ver código fuente](blueprints/automation/door_light/BP_Multi_Door_Light.yaml)
 
 ---
 
@@ -148,14 +167,11 @@ WARN  [Entrada principal] Pareja 1 — OMITIDO: Sensor no disponible (unavailabl
 Si prefieres instalar sin el botón de importación:
 
 1. Descarga el archivo `.yaml` del blueprint que necesitas
-2. Cópialo a tu instalación de HA en la ruta correspondiente:
+2. Cópialo a tu instalación de HA:
 
 ```
-# Blueprint 1 — Interruptores con luces
-config/blueprints/automation/switch_light/switch_light.yaml
-
-# Blueprint 2 — Puertas con luces
-config/blueprints/automation/door_light/door_light.yaml
+config/blueprints/automation/switch_light/BP_Multi_Switch_Light.yaml
+config/blueprints/automation/door_light/BP_Multi_Door_Light.yaml
 ```
 
 3. En HA: **Configuración → Automatizaciones → Planos → ⋮ → Recargar planos**
@@ -165,13 +181,12 @@ config/blueprints/automation/door_light/door_light.yaml
 
 ## 🔍 Ver logs en Home Assistant
 
-Los eventos quedan registrados en **Configuración → Registros**.
-Filtra por el logger de cada blueprint:
+**Configuración → Registros** — filtra por el logger de cada blueprint:
 
 | Blueprint | Logger |
 |---|---|
-| Interruptores ↔ Luces | `blueprint.sync_switch_luz` |
-| Puertas → Luces | `blueprint.puerta_luz` |
+| Switch ↔ Light | `blueprint.sync_switch_luz` |
+| Door → Light | `blueprint.door_light` |
 
 ---
 
