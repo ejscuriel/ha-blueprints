@@ -53,7 +53,7 @@ blueprint:
 
   # Campos reconocidos por el directorio oficial de HA
   author: "Eduardo Sánchez Curiel — EVOTECH LTDA"
-  source_url: "https://github.com/TU_USUARIO/ha-blueprints/blob/main/blueprints/automation/sync_switch_luz/blueprint.yaml"
+  source_url: "https://github.com/ejscuriel/ha-blueprints/blob/main/blueprints/automation/sync_switch_luz/blueprint_multi_switch_luz.yaml"
 
   # ────────────────────────────────────────────────────────────────────────────
   #  PARÁMETROS DE ENTRADA
