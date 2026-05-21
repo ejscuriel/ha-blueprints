@@ -1,12 +1,36 @@
-# 🏠 Home Assistant Blueprints — EVOTECH LTDA
+<div align="center">
 
-Colección de blueprints para Home Assistant desarrollados por **EVOTECH LTDA**.
+# 🏠 Home Assistant Blueprints
+### by EVOTECH LTDA
 
-> **Autor:** Eduardo Sánchez Curiel  
-> **País:** Colombia 🇨🇴  
-> **Web:** [www.evotechltda.com](https://www.evotechltda.com)  
-> **Contacto:** admin@evotechltda.com  
-> **Licencia:** MIT — libre uso con crédito al autor  
+[![HA Version](https://img.shields.io/badge/Home%20Assistant-2024.4%2B-blue?logo=homeassistant)](https://www.home-assistant.io/)
+[![Licencia MIT](https://img.shields.io/badge/Licencia-MIT-green)](LICENSE)
+[![Colombia](https://img.shields.io/badge/País-Colombia%20🇨🇴-yellow)]()
+[![Web](https://img.shields.io/badge/Web-evotechltda.com-orange)](https://www.evotechltda.com)
+
+**Colección de blueprints profesionales para Home Assistant**
+desarrollados por **Eduardo Sánchez Curiel — EVOTECH LTDA**
+
+📧 admin@evotechltda.com · 🌐 www.evotechltda.com
+
+</div>
+
+---
+
+## ✨ ¿Por qué estos blueprints?
+
+En instalaciones domóticas modernas conviven dispositivos de distintos fabricantes
+(Sonoff, Tuya, Zigbee, ESPHome) que necesitan trabajar juntos sin cableado físico.
+Estos blueprints cubren los casos más comunes con una sola instancia configurable,
+registro detallado en el log y protección ante fallos de conectividad.
+
+**Características comunes a todos los blueprints:**
+- ✅ Hasta **10 parejas** de dispositivos en una sola instancia
+- ✅ Secciones **plegables** — expande solo lo que necesitas
+- ✅ **Protección** ante dispositivos desconectados o no disponibles
+- ✅ **Log detallado** con nombre de automatización, número de pareja y causa del fallo
+- ✅ Compatible con **WiFi** (Tuya, Sonoff, Shelly) y **Zigbee** (IKEA, Aqara, Sonoff ZB)
+- ✅ Requiere Home Assistant **2024.4** o superior
 
 ---
 
@@ -14,68 +38,105 @@ Colección de blueprints para Home Assistant desarrollados por **EVOTECH LTDA**.
 
 ---
 
-### 💡 Vincular Interruptores con Luces (hasta 10 parejas)
+### 💡 1. Vincular Interruptores con Luces CCT
 
-En muchas instalaciones domóticas modernas conviven interruptores WiFi o Zigbee
-con tiras LED controladas por un controlador WiFi independiente. Aunque físicamente
-el interruptor **no está cableado** a la tira LED, con este blueprint logramos
-una sincronización **lógica** bidireccional: el interruptor actúa como si estuviera
+> **Sincronización bidireccional interruptor ↔ luz sin cableado físico**
+
+En muchas instalaciones conviven interruptores WiFi o Zigbee con tiras LED
+controladas por un controlador WiFi independiente. Aunque físicamente el
+interruptor **no está cableado** a la tira LED, este blueprint logra una
+sincronización **lógica** bidireccional: el interruptor actúa como si estuviera
 directamente conectado a la luz, y viceversa.
 
-Es ideal cuando tienes varios de estos casos repartidos por la casa — sala, cuarto,
-cocina, pasillo — y no quieres crear una automatización separada para cada uno.
-Con una sola instancia de este blueprint gestionas hasta **10 parejas** interruptor↔luz,
-cada una con sus propios ajustes de brillo y temperatura de color.
+**Comportamiento:**
+| Evento | Resultado |
+|---|---|
+| Interruptor `ON` | Enciende la luz con brillo y temperatura definidos |
+| Interruptor `OFF` | Apaga la luz |
+| Luz `ON` | Enciende el interruptor |
+| Luz `OFF` | Apaga el interruptor |
 
-**¿Qué hace?**
-- Interruptor `ON/OFF` → enciende/apaga la tira LED con brillo y temperatura definidos
-- Tira LED `ON/OFF` → enciende/apaga el interruptor para mantener ambos sincronizados
-- Compatible con interruptores **WiFi** (Sonoff, Tuya, Shelly) y **Zigbee** (IKEA, Aqara, Sonoff ZB)
-- Compatible con controladores LED **WiFi CCT** (temperatura de color fría/cálida)
-- Cada pareja puede tener su propio brillo y temperatura, o usar los valores globales por defecto
-- Protección ante dispositivos desconectados o no disponibles
-- Registro detallado en el log de HA con nombre de automatización y número de pareja
-
-**Requisitos**
-- Home Assistant **2024.4** o superior
-- Dispositivos integrados nativamente en HA (eWeLink, Tuya, MQTT, ESPHome, etc.)
-
-**Importar directamente en Home Assistant:**
-
-[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/sync_switch_luz/blueprint_multi_switch_luz.yaml)
-
-> Enlace directo al archivo raw en GitHub.
-
-**Configuración**
-
+**Parámetros configurables:**
 | Parámetro | Descripción | Por defecto |
 |---|---|---|
 | Brillo por defecto | % de brillo al encender (1–100) | 55% |
 | Temperatura por defecto | Kelvin: 2700 cálido · 6500 frío | 6500 K |
 | Pareja N → Interruptor | Entity ID del switch | — |
-| Pareja N → Luz | Entity ID de la luz | — |
-| Pareja N → Brillo | Brillo individual (0 = usar defecto) | 0 |
-| Pareja N → Temperatura | Temperatura individual (0 = usar defecto) | 0 |
+| Pareja N → Luz | Entity ID de la luz CCT | — |
+| Pareja N → Brillo | Individual (0 = usar defecto) | 0 |
+| Pareja N → Temperatura | Individual (0 = usar defecto) | 0 |
 
-**Log de seguimiento**
-
-Los eventos quedan registrados bajo el logger `blueprint.sync_switch_luz`:
-
+**Log de seguimiento** (`blueprint.sync_switch_luz`):
 ```
-INFO  [Sala principal] Pareja 1 — Switch→Luz:
-      'switch.sonoff_sala' → ON → 'light.led_sala' encendida (brillo=55%, CT=6500K)
-
-WARN  [Sala principal] Pareja 1 — OMITIDO Switch→Luz:
-      'light.led_sala' no disponible. Verifica la conexión del dispositivo.
+INFO  [Sala principal] Pareja 1 — Switch→Luz: 'switch.sonoff_sala' → ON
+      → 'light.led_sala' encendida (brillo=55%, CT=6500K)
+WARN  [Sala principal] Pareja 1 — OMITIDO: 'light.led_sala' no disponible
+      Verifica la conexión del dispositivo.
 ```
 
-**Versiones**
-
+**Versiones:**
 | Versión | Fecha | Cambios |
 |---|---|---|
 | 1.2.0 | 2025-05-20 | Logs con nombre de automatización y nº de pareja |
 | 1.1.0 | 2025-05-20 | Ampliado a 10 parejas |
 | 1.0.0 | 2025-05-20 | Versión inicial |
+
+[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/switch_light/BP_Multi_Switch_Light.yaml)
+
+🔗 [Ver código fuente](blueprints/automation/switch_light/switch_light.yaml)
+
+---
+
+### 🚪 2. Puerta → Luz / Interruptor con Temporización
+
+> **Control automático de iluminación por apertura de puertas con timers configurables**
+
+Vincula sensores de puerta o ventana con luces o interruptores de forma **lógica**.
+Al abrir la puerta enciende la luz; al cerrarla la mantiene encendida un tiempo
+adicional antes de apagarla — como un interruptor automático de escalera o pasillo,
+pero totalmente configurable por pareja.
+
+Ideal para **entradas, pasillos, closets, bodegas, baños y garajes**.
+
+**Comportamiento:**
+| Evento | Resultado |
+|---|---|
+| Puerta `ABRE` | Enciende la luz. Timer de apertura activo si ≠ -1 |
+| Tiempo apertura vence (puerta aún abierta) | Apaga la luz automáticamente |
+| Puerta `CIERRA` | Inicia timer de cierre si ≠ -1 |
+| Tiempo cierre vence | Apaga la luz automáticamente |
+| Switch `ON` manual + puerta abierta | Aplica timer de apertura |
+| Switch `ON` manual + puerta cerrada | Aplica timer de cierre |
+| Cualquier tiempo = `-1` | Encendido **indefinido**, sin apagado automático |
+
+**Parámetros configurables:**
+| Parámetro | Descripción | Por defecto |
+|---|---|---|
+| Tiempo puerta abierta | Segundos encendida con puerta abierta (-1 = ilimitado) | 300 s |
+| Tiempo tras cierre | Segundos encendida tras cerrar (-1 = ilimitado) | 60 s |
+| Pareja N → Sensor | Binary sensor de puerta/ventana/apertura | — |
+| Pareja N → Luz/Switch | Target (acepta light.* y switch.*) | — |
+| Pareja N → Tiempo apertura | Individual (0 = usar defecto, -1 = ilimitado) | 0 |
+| Pareja N → Tiempo cierre | Individual (0 = usar defecto, -1 = ilimitado) | 0 |
+
+**Log de seguimiento** (`blueprint.puerta_luz`):
+```
+INFO  [Entrada principal] Pareja 1 — Puerta ABIERTA → Luz encendida. Tiempo máximo: 300s
+INFO  [Entrada principal] Pareja 1 — Puerta CERRADA. Apagado programado en: 60s
+INFO  [Entrada principal] Pareja 1 — Tiempo tras cierre agotado (60s) → Luz apagada
+INFO  [Entrada principal] Pareja 1 — Timer cancelado: la puerta volvió a abrirse
+WARN  [Entrada principal] Pareja 1 — OMITIDO: Sensor no disponible (unavailable)
+      Acción requerida: revisar batería o conectividad del sensor.
+```
+
+**Versiones:**
+| Versión | Fecha | Cambios |
+|---|---|---|
+| 1.0.0 | 2025-05-20 | Versión inicial: 10 parejas, temporización y logging |
+
+[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/door_light/BP_Multi_Door_Light.yaml)
+
+🔗 [Ver código fuente](blueprints/automation/door_light/door_light.yaml)
 
 ---
 
@@ -83,13 +144,38 @@ WARN  [Sala principal] Pareja 1 — OMITIDO Switch→Luz:
 
 Si prefieres instalar sin el botón de importación:
 
-1. Descarga el archivo `blueprint.yaml`
-2. Cópialo a tu carpeta de HA:
+1. Descarga el archivo `.yaml` del blueprint que necesitas
+2. Cópialo a tu instalación de HA en la ruta correspondiente:
+
 ```
-config/blueprints/automation/sync_switch_luz/blueprint_multi_switch_luz.yaml
+# Blueprint 1 — Interruptores con luces
+config/blueprints/automation/switch_light/switch_light.yaml
+
+# Blueprint 2 — Puertas con luces
+config/blueprints/automation/door_light/door_light.yaml
 ```
+
 3. En HA: **Configuración → Automatizaciones → Planos → ⋮ → Recargar planos**
-4. Crea una nueva automatización desde el plano
+4. Crea una nueva automatización desde el plano deseado
+
+---
+
+## 🔍 Ver logs en Home Assistant
+
+Los eventos quedan registrados en **Configuración → Registros**.
+Filtra por el logger de cada blueprint:
+
+| Blueprint | Logger |
+|---|---|
+| Interruptores ↔ Luces | `blueprint.sync_switch_luz` |
+| Puertas → Luces | `blueprint.puerta_luz` |
+
+---
+
+## 🤝 Contribuciones
+
+¿Encontraste un bug o tienes una mejora? Abre un **Issue** o un **Pull Request**.
+¿Tienes un caso de uso diferente? Escríbenos a admin@evotechltda.com
 
 ---
 
@@ -98,3 +184,13 @@ config/blueprints/automation/sync_switch_luz/blueprint_multi_switch_luz.yaml
 MIT License — Copyright (c) 2025 EVOTECH LTDA — Eduardo Sánchez Curiel
 
 Se permite el uso, copia y modificación libre con crédito al autor original.
+
+---
+
+<div align="center">
+
+Hecho con ❤️ en Colombia 🇨🇴 por **EVOTECH LTDA**
+
+[www.evotechltda.com](https://www.evotechltda.com) · admin@evotechltda.com
+
+</div>
