@@ -1,0 +1,298 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  BLUEPRINT: Puerta → Luz / Interruptor — una pareja                        ║
+# ╠══════════════════════════════════════════════════════════════════════════════╣
+# ║  Controla una carga desde un sensor de puerta con tres temporizadores.      ║
+# ║  Diseñado para crear una automatización independiente por pareja.          ║
+# ║                                                                            ║
+# ║  Autor       : Eduardo Sánchez Curiel — EVOTECH LTDA                       ║
+# ║  Versión     : 3.0.0                                                       ║
+# ║  Fecha       : 2026-09-02                                                  ║
+# ║  Licencia    : MIT                                                         ║
+# ║  Requisitos  : Home Assistant 2026.1.0 o superior                         ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+blueprint:
+  name: Puerta → Luz / Interruptor — una pareja
+  description: |
+    **By EVOTECH LTDA · Eduardo Sánchez Curiel · Colombia**
+
+    Vincula un sensor de puerta con una luz, interruptor o relé. Cada instancia
+    administra una sola pareja para que sus temporizadores no cancelen los de
+    otras habitaciones.
+
+    - Al abrir, enciende el dispositivo y aplica el tiempo de puerta abierta.
+    - Al cerrar, aplica el tiempo de puerta cerrada.
+    - Un encendido con la puerta abierta usa el tiempo de puerta abierta.
+    - Un encendido con la puerta cerrada usa el tiempo de encendido manual.
+    - `0` apaga inmediatamente; `-1` deja el encendido sin límite.
+    - Un apagado físico o externo cancela el temporizador activo.
+
+    Requiere **Home Assistant 2026.1.0 o posterior**.
+
+    **Versión 3.0.0**
+
+    www.evotechltda.com · admin@evotechltda.com
+
+  domain: automation
+  homeassistant:
+    min_version: "2026.1.0"
+  author: "Eduardo Sánchez Curiel — EVOTECH LTDA"
+  source_url: "https://github.com/ejscuriel/ha-blueprints/blob/main/blueprints/automation/door_light_single/BP_Door_Light.yaml"
+
+  input:
+    pareja:
+      name: "🚪 Puerta y dispositivo"
+      icon: mdi:door
+      collapsed: false
+      input:
+        puerta:
+          name: Sensor de puerta
+          description: Sensor binario que usa `on` para abierta y `off` para cerrada.
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+              multiple: false
+
+        dispositivo:
+          name: Luz, interruptor o relé
+          description: Carga controlada; acepta entidades `light.*` y `switch.*`.
+          selector:
+            entity:
+              filter:
+                - domain:
+                    - light
+                    - switch
+              multiple: false
+
+    temporizadores:
+      name: "⏱ Temporizadores"
+      icon: mdi:timer-outline
+      collapsed: false
+      description: En segundos. Usa `0` para apagar de inmediato y `-1` para no apagar automáticamente.
+      input:
+        tiempo_abierto:
+          name: Tiempo con la puerta abierta
+          default: 300
+          selector:
+            number:
+              min: -1
+              max: 3600
+              step: 1
+              unit_of_measurement: s
+              mode: box
+
+        tiempo_cerrado:
+          name: Tiempo después de cerrar
+          default: 60
+          selector:
+            number:
+              min: -1
+              max: 3600
+              step: 1
+              unit_of_measurement: s
+              mode: box
+
+        tiempo_manual:
+          name: Tiempo al encender con la puerta cerrada
+          default: 120
+          selector:
+            number:
+              min: -1
+              max: 3600
+              step: 1
+              unit_of_measurement: s
+              mode: box
+
+# Se aceptan únicamente transiciones reales. Un cambio a off cancela cualquier
+# espera porque mode: restart inicia una ejecución nueva que no enciende nada.
+triggers:
+  - trigger: state
+    alias: Puerta abierta
+    entity_id: !input puerta
+    from: "off"
+    to: "on"
+    id: puerta_abierta
+
+  - trigger: state
+    alias: Puerta cerrada
+    entity_id: !input puerta
+    from: "on"
+    to: "off"
+    id: puerta_cerrada
+
+  - trigger: state
+    alias: Dispositivo encendido
+    entity_id: !input dispositivo
+    from: "off"
+    to: "on"
+    id: dispositivo_encendido
+
+  - trigger: state
+    alias: Dispositivo apagado
+    entity_id: !input dispositivo
+    from: "on"
+    to: "off"
+    id: dispositivo_apagado
+
+conditions: []
+
+actions:
+  - alias: Resolver el evento con YAML visible
+    choose:
+      # Al abrir se enciende la carga. Su transición a on inicia una ejecución
+      # nueva y centraliza allí el temporizador de puerta abierta.
+      - conditions:
+          - condition: trigger
+            id: puerta_abierta
+          - condition: state
+            entity_id: !input dispositivo
+            state: "off"
+        sequence:
+          - alias: Encender al abrir la puerta
+            action: homeassistant.turn_on
+            target:
+              entity_id: !input dispositivo
+
+      # Si la puerta se abre y la carga ya estaba encendida, no habrá una nueva
+      # transición a on; por eso se aplica aquí el temporizador correspondiente.
+      - conditions:
+          - condition: trigger
+            id: puerta_abierta
+          - condition: state
+            entity_id: !input dispositivo
+            state: "on"
+        sequence:
+          - alias: Cargar tiempo de puerta abierta
+            variables:
+              segundos: !input tiempo_abierto
+
+          - alias: Continuar solamente si el tiempo no es ilimitado
+            condition: template
+            value_template: "{{ segundos | int(-1) != -1 }}"
+
+          - alias: Esperar el tiempo de puerta abierta
+            delay:
+              seconds: "{{ [segundos | int(0), 0] | max }}"
+
+          - alias: Confirmar que la puerta continúa abierta
+            condition: state
+            entity_id: !input puerta
+            state: "on"
+
+          - alias: Confirmar que el dispositivo continúa encendido
+            condition: state
+            entity_id: !input dispositivo
+            state: "on"
+
+          - alias: Apagar al terminar el tiempo de puerta abierta
+            action: homeassistant.turn_off
+            target:
+              entity_id: !input dispositivo
+
+      - conditions:
+          - condition: trigger
+            id: puerta_cerrada
+          - condition: state
+            entity_id: !input dispositivo
+            state: "on"
+        sequence:
+          - alias: Cargar tiempo de puerta cerrada
+            variables:
+              segundos: !input tiempo_cerrado
+
+          - alias: Continuar solamente si el tiempo no es ilimitado
+            condition: template
+            value_template: "{{ segundos | int(-1) != -1 }}"
+
+          - alias: Esperar el tiempo de puerta cerrada
+            delay:
+              seconds: "{{ [segundos | int(0), 0] | max }}"
+
+          - alias: Confirmar que la puerta continúa cerrada
+            condition: state
+            entity_id: !input puerta
+            state: "off"
+
+          - alias: Confirmar que el dispositivo continúa encendido
+            condition: state
+            entity_id: !input dispositivo
+            state: "on"
+
+          - alias: Apagar al terminar el tiempo de puerta cerrada
+            action: homeassistant.turn_off
+            target:
+              entity_id: !input dispositivo
+
+      - conditions:
+          - condition: trigger
+            id: dispositivo_encendido
+          - condition: state
+            entity_id: !input puerta
+            state: "on"
+        sequence:
+          - alias: Cargar tiempo de puerta abierta
+            variables:
+              segundos: !input tiempo_abierto
+
+          - alias: Continuar solamente si el tiempo no es ilimitado
+            condition: template
+            value_template: "{{ segundos | int(-1) != -1 }}"
+
+          - alias: Esperar el tiempo de puerta abierta
+            delay:
+              seconds: "{{ [segundos | int(0), 0] | max }}"
+
+          - alias: Confirmar que la puerta continúa abierta
+            condition: state
+            entity_id: !input puerta
+            state: "on"
+
+          - alias: Confirmar que el dispositivo continúa encendido
+            condition: state
+            entity_id: !input dispositivo
+            state: "on"
+
+          - alias: Apagar al terminar el tiempo de puerta abierta
+            action: homeassistant.turn_off
+            target:
+              entity_id: !input dispositivo
+
+      - conditions:
+          - condition: trigger
+            id: dispositivo_encendido
+          - condition: state
+            entity_id: !input puerta
+            state: "off"
+        sequence:
+          - alias: Cargar tiempo de encendido con puerta cerrada
+            variables:
+              segundos: !input tiempo_manual
+
+          - alias: Continuar solamente si el tiempo no es ilimitado
+            condition: template
+            value_template: "{{ segundos | int(-1) != -1 }}"
+
+          - alias: Esperar el tiempo de encendido manual
+            delay:
+              seconds: "{{ [segundos | int(0), 0] | max }}"
+
+          - alias: Confirmar que la puerta continúa cerrada
+            condition: state
+            entity_id: !input puerta
+            state: "off"
+
+          - alias: Confirmar que el dispositivo continúa encendido
+            condition: state
+            entity_id: !input dispositivo
+            state: "on"
+
+          - alias: Apagar al terminar el tiempo de encendido manual
+            action: homeassistant.turn_off
+            target:
+              entity_id: !input dispositivo
+
+# El reinicio es local a esta única pareja y cancela correctamente el timer
+# cuando cambia la puerta o cuando el dispositivo se apaga externamente.
+mode: restart
+max_exceeded: silent

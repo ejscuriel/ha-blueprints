@@ -1,0 +1,181 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  BLUEPRINT: Interruptor ↔ Luz — una pareja                                 ║
+# ╠══════════════════════════════════════════════════════════════════════════════╣
+# ║  Sincroniza un interruptor y una luz en ambos sentidos.                    ║
+# ║  Diseñado para crear una automatización independiente por pareja.          ║
+# ║                                                                            ║
+# ║  Autor       : Eduardo Sánchez Curiel — EVOTECH LTDA                       ║
+# ║  Versión     : 2.0.0                                                       ║
+# ║  Fecha       : 2026-09-02                                                  ║
+# ║  Licencia    : MIT                                                         ║
+# ║  Requisitos  : Home Assistant 2026.1.0 o superior                         ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+blueprint:
+  name: Interruptor ↔ Luz — una pareja
+  description: |
+    **By EVOTECH LTDA · Eduardo Sánchez Curiel · Colombia**
+
+    Sincroniza bidireccionalmente un interruptor y una luz sin cableado físico.
+    Cada automatización administra una sola pareja, por lo que sus trazas,
+    reinicios y errores quedan aislados de las demás habitaciones.
+
+    - Interruptor `on` → enciende la luz con brillo y temperatura definidos.
+    - Interruptor `off` → apaga la luz.
+    - Luz `on` → enciende el interruptor.
+    - Luz `off` → apaga el interruptor.
+    - Estados `unknown` o `unavailable` no generan acciones cruzadas.
+
+    Requiere **Home Assistant 2026.1.0 o posterior**.
+
+    **Versión 2.0.0**
+
+    www.evotechltda.com · admin@evotechltda.com
+
+  domain: automation
+  homeassistant:
+    min_version: "2026.1.0"
+  author: "Eduardo Sánchez Curiel — EVOTECH LTDA"
+  source_url: "https://github.com/ejscuriel/ha-blueprints/blob/main/blueprints/automation/switch_light_single/BP_Switch_Light.yaml"
+
+  input:
+    pareja:
+      name: "💡 Interruptor y luz"
+      icon: mdi:light-switch
+      collapsed: false
+      input:
+        interruptor:
+          name: Interruptor
+          description: Interruptor físico o lógico que se vinculará con la luz.
+          selector:
+            entity:
+              filter:
+                - domain: switch
+              multiple: false
+
+        luz:
+          name: Luz
+          description: Luz que se vinculará con el interruptor.
+          selector:
+            entity:
+              filter:
+                - domain: light
+              multiple: false
+
+    encendido:
+      name: "🎚 Ajustes de encendido"
+      icon: mdi:lightbulb-on-outline
+      collapsed: false
+      input:
+        brillo:
+          name: Brillo
+          description: Brillo aplicado cuando el interruptor enciende la luz.
+          default: 55
+          selector:
+            number:
+              min: 1
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+
+        temperatura_color:
+          name: Temperatura de color
+          description: Temperatura aplicada al encender; 2700 K es cálido y 6500 K es frío.
+          default: 6500
+          selector:
+            color_temp:
+              unit: kelvin
+              min: 2700
+              max: 6500
+
+# Cada disparador exige una transición real entre off y on. La recuperación
+# desde unknown/unavailable no modifica la entidad asociada automáticamente.
+triggers:
+  - trigger: state
+    alias: Interruptor encendido
+    entity_id: !input interruptor
+    from: "off"
+    to: "on"
+    id: interruptor_encendido
+
+  - trigger: state
+    alias: Interruptor apagado
+    entity_id: !input interruptor
+    from: "on"
+    to: "off"
+    id: interruptor_apagado
+
+  - trigger: state
+    alias: Luz encendida
+    entity_id: !input luz
+    from: "off"
+    to: "on"
+    id: luz_encendida
+
+  - trigger: state
+    alias: Luz apagada
+    entity_id: !input luz
+    from: "on"
+    to: "off"
+    id: luz_apagada
+
+conditions: []
+
+actions:
+  - alias: Sincronizar solamente cuando el otro extremo necesita cambiar
+    choose:
+      - conditions:
+          - condition: trigger
+            id: interruptor_encendido
+          - condition: state
+            entity_id: !input luz
+            state: "off"
+        sequence:
+          - alias: Encender la luz con sus ajustes
+            action: light.turn_on
+            target:
+              entity_id: !input luz
+            data:
+              brightness_pct: !input brillo
+              color_temp_kelvin: !input temperatura_color
+
+      - conditions:
+          - condition: trigger
+            id: interruptor_apagado
+          - condition: state
+            entity_id: !input luz
+            state: "on"
+        sequence:
+          - alias: Apagar la luz
+            action: light.turn_off
+            target:
+              entity_id: !input luz
+
+      - conditions:
+          - condition: trigger
+            id: luz_encendida
+          - condition: state
+            entity_id: !input interruptor
+            state: "off"
+        sequence:
+          - alias: Encender el interruptor
+            action: switch.turn_on
+            target:
+              entity_id: !input interruptor
+
+      - conditions:
+          - condition: trigger
+            id: luz_apagada
+          - condition: state
+            entity_id: !input interruptor
+            state: "on"
+        sequence:
+          - alias: Apagar el interruptor
+            action: switch.turn_off
+            target:
+              entity_id: !input interruptor
+
+# Una ejecución nueva sustituye a la anterior de esta pareja solamente.
+mode: restart
+max_exceeded: silent

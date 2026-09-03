@@ -3,13 +3,15 @@
 # 🏠 Home Assistant Blueprints
 ### by EVOTECH LTDA
 
-[![HA Version](https://img.shields.io/badge/Home%20Assistant-2024.4%2B-blue?logo=homeassistant)](https://www.home-assistant.io/)
+[![HA Version](https://img.shields.io/badge/Home%20Assistant-2026.1%2B-blue?logo=homeassistant)](https://www.home-assistant.io/)
 [![Licencia MIT](https://img.shields.io/badge/Licencia-MIT-green)](LICENSE)
 [![Colombia](https://img.shields.io/badge/País-Colombia%20🇨🇴-yellow)]()
 [![Web](https://img.shields.io/badge/Web-evotechltda.com-orange)](https://www.evotechltda.com)
 
-**Colección de blueprints profesionales para Home Assistant**
-desarrollados por **Eduardo Sánchez Curiel — EVOTECH LTDA**
+**Colección de blueprints para desplegar hogares Home Assistant de forma rápida,
+legible y repetible.**
+
+Desarrollados por **Eduardo Sánchez Curiel — EVOTECH LTDA**
 
 📧 admin@evotechltda.com · 🌐 www.evotechltda.com
 
@@ -17,266 +19,225 @@ desarrollados por **Eduardo Sánchez Curiel — EVOTECH LTDA**
 
 ---
 
-## 📦 Blueprints disponibles
+## 📦 Blueprints recomendados
 
-| # | Blueprint | Descripción rápida |
-|---|---|---|
-| 1 | 💡 [Switch ↔ Light](#-1-vincular-interruptores-con-luces-cct) | Sincroniza interruptor y luz bidireccionalmente |
-| 2 | 🚪 [Door → Light](#-2-puerta--luz--interruptor-con-temporización) | Controla luz por apertura de puerta con timers |
-| 3 | 🌦 [Presence → Light / Switch](#-3-presencia--luz--interruptor-con-horario-y-clima) | Controla una carga por presencia, horario y clima |
+| # | Blueprint | Unidad de configuración | Descripción |
+|---|---|---|---|
+| 1 | 💡 [Interruptor ↔ Luz](#-1-interruptor--luz--una-pareja) | Una pareja | Sincronización bidireccional |
+| 2 | 🚪 [Puerta → Luz / Interruptor](#-2-puerta--luz--interruptor--una-pareja) | Una pareja | Control con tres temporizadores |
+| 3 | 🌦 [Presencia → Luz / Interruptor](#-3-presencia--luz--interruptor-con-horario-y-clima) | Una zona | Presencia, horarios, clima y máximo opcional |
 
----
-
-### 💡 1. Switch ↔ Light (WiFi / Zigbee)
-
-> Sincroniza interruptor y luz sin cableado físico — hasta 10 parejas
-
-[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/switch_light/BP_Multi_Switch_Light.yaml)
-🔗 [Ver código fuente](blueprints/automation/switch_light/BP_Multi_Switch_Light.yaml)
+Los blueprints se importan **una sola vez**. Después se crea una automatización
+por pareja o zona. Esta estructura hace que la interfaz, las trazas, los nombres,
+los reinicios y los errores sean independientes y fáciles de entender.
 
 ---
 
-### 🚪 2. Door → Light / Switch
+### 💡 1. Interruptor ↔ Luz — una pareja
 
-> Enciende/apaga luz al abrir/cerrar una puerta con timers configurables — hasta 10 parejas
+> Sincroniza un interruptor y una luz sin cableado físico.
 
-[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/door_light/BP_Multi_Door_Light.yaml)
-🔗 [Ver código fuente](blueprints/automation/door_light/BP_Multi_Door_Light.yaml)
+[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/switch_light_single/BP_Switch_Light.yaml)
 
----
-
-### 🌦 3. Presence → Light / Switch
-
-> Controla una luz, interruptor o relé por presencia, horario y clima, con límite máximo opcional
-
-[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/presence_climate/BP_Presencia_Interruptor_Clima.yaml)
-🔗 [Ver código fuente](blueprints/automation/presence_climate/BP_Presencia_Interruptor_Clima.yaml)
-
----
-
-## ✨ Características de la colección
-
-- ✅ Los blueprints multipareja admiten hasta **10 parejas** por instancia
-- ✅ Entradas organizadas en secciones **plegables** cuando corresponde
-- ✅ Protección ante estados no disponibles y trazabilidad según cada blueprint
-- ✅ Compatible con **WiFi** (Tuya, Sonoff, Shelly) y **Zigbee** (IKEA, Aqara, Sonoff ZB)
-- ✅ Cada blueprint declara y documenta su versión mínima de Home Assistant
-
----
-
-## 📖 Documentación detallada
-
----
-
-### 💡 1. Vincular Interruptores con Luces CCT
-
-> **Sincronización bidireccional interruptor ↔ luz sin cableado físico**
-
-En muchas instalaciones conviven interruptores WiFi o Zigbee con tiras LED
-controladas por un controlador WiFi independiente. Aunque físicamente el
-interruptor **no está cableado** a la tira LED, este blueprint logra una
-sincronización **lógica** bidireccional: el interruptor actúa como si estuviera
-directamente conectado a la luz, y viceversa.
+🔗 [Ver código fuente](blueprints/automation/switch_light_single/BP_Switch_Light.yaml)
 
 **Comportamiento:**
+
 | Evento | Resultado |
 |---|---|
-| Interruptor `ON` | Enciende la luz con brillo y temperatura definidos |
-| Interruptor `OFF` | Apaga la luz |
-| Luz `ON` | Enciende el interruptor |
-| Luz `OFF` | Apaga el interruptor |
+| Interruptor `on` | Enciende la luz con el brillo y la temperatura elegidos |
+| Interruptor `off` | Apaga la luz |
+| Luz `on` | Enciende el interruptor |
+| Luz `off` | Apaga el interruptor |
+| Estado `unknown` o `unavailable` | No ejecuta una acción cruzada |
 
-**Parámetros configurables:**
-| Parámetro | Descripción | Por defecto |
-|---|---|---|
-| Brillo por defecto | % de brillo al encender (1–100) | 55% |
-| Temperatura por defecto | Kelvin: 2700 cálido · 6500 frío | 6500 K |
-| Pareja N → Interruptor | Entity ID del switch | — |
-| Pareja N → Luz | Entity ID de la luz CCT | — |
-| Pareja N → Brillo | Individual (0 = usar defecto) | 0 |
-| Pareja N → Temperatura | Individual (0 = usar defecto) | 0 |
+**Parámetros:**
 
-**Log de seguimiento** (`blueprint.sync_switch_luz`):
-```
-INFO  [Sala principal] Pareja 1 — Switch→Luz: 'switch.sonoff_sala' → ON
-      → 'light.led_sala' encendida (brillo=55%, CT=6500K)
-WARN  [Sala principal] Pareja 1 — OMITIDO: 'light.led_sala' no disponible
-      Verifica la conexión del dispositivo.
-```
+| Parámetro | Por defecto |
+|---|---|
+| Interruptor | Obligatorio |
+| Luz | Obligatoria |
+| Brillo | 55 % |
+| Temperatura de color | 6500 K |
 
-**Versiones:**
-| Versión | Fecha | Cambios |
-|---|---|---|
-| 1.2.0 | 2025-05-20 | Logs con nombre de automatización y nº de pareja |
-| 1.1.0 | 2025-05-20 | Ampliado a 10 parejas |
-| 1.0.0 | 2025-05-20 | Versión inicial |
-
-[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/switch_light/BP_Multi_Switch_Light.yaml)
-🔗 [Ver código fuente](blueprints/automation/switch_light/BP_Multi_Switch_Light.yaml)
+Cada pareja usa `mode: restart` de manera aislada. Si dos interruptores se
+asocian deliberadamente con la misma luz, se crean dos automatizaciones y ambos
+se sincronizan mediante los cambios de estado de esa luz.
 
 ---
 
-### 🚪 2. Puerta → Luz / Interruptor con Temporización
+### 🚪 2. Puerta → Luz / Interruptor — una pareja
 
-> **Control automático de iluminación por apertura de puertas con 3 timers independientes**
+> Controla una carga con un sensor de puerta y tres tiempos independientes.
 
-Vincula hasta 10 sensores de puerta con luces o interruptores de forma **lógica**,
-sin cableado físico. Cada pareja gestiona sus propios timers de forma independiente.
-Compatible con sensores **WiFi y Zigbee** y cualquier luz o switch integrado en HA.
+[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/door_light_single/BP_Door_Light.yaml)
 
-Ideal para **entradas, pasillos, closets, bodegas, baños y garajes**.
+🔗 [Ver código fuente](blueprints/automation/door_light_single/BP_Door_Light.yaml)
 
 **Comportamiento:**
-| Evento | Timer | Resultado |
-|---|---|---|
-| Puerta `ABRE` | `t_ab` | Enciende + apaga tras t_ab segundos |
-| Puerta `CIERRA` | `t_ce` | Apaga tras t_ce segundos |
-| Switch `ON` manual + puerta **abierta** | `t_ab` | Reinicia el timer t_ab |
-| Switch `ON` manual + puerta **cerrada** | `t_mc` | Apaga tras t_mc segundos |
-| Cualquier timer = `0` | — | Apaga **inmediatamente** |
-| Cualquier timer = `-1` | — | Sin apagado automático (**ilimitado**) |
 
-**Parámetros por pareja (cada pareja es independiente):**
-| Parámetro | Descripción | Sugerido |
-|---|---|---|
-| Sensor de puerta | Binary sensor (door, window, opening) | — |
-| Luz o interruptor | Acepta light.* y switch.* | — |
-| `t_ab` | Tiempo tras abrir puerta. 0=inmediato, -1=ilimitado | 300 s |
-| `t_ce` | Tiempo tras cerrar puerta. 0=inmediato, -1=ilimitado | 60 s |
-| `t_mc` | Tiempo encendido manual + puerta cerrada. 0=inmediato, -1=ilimitado | 120 s |
+| Evento | Temporizador aplicado |
+|---|---|
+| La puerta abre | Enciende y usa el tiempo de puerta abierta (`t_ab`) |
+| La puerta cierra | Usa el tiempo de puerta cerrada (`t_ce`) |
+| El dispositivo enciende con la puerta abierta | Usa `t_ab` |
+| El dispositivo enciende con la puerta cerrada | Usa el tiempo manual (`t_mc`) |
+| El dispositivo se apaga físicamente o externamente | Cancela el tiempo activo |
 
-**Log de seguimiento** (`blueprint.door_light`):
-```
-INFO  [Entrada] Pareja 1 — Puerta ABIERTA → 'light.led_entrada' encendido. t_ab: 300s
-INFO  [Entrada] Pareja 1 — t_ab agotado (300s), puerta aún abierta → apagado
-INFO  [Entrada] Pareja 1 — Puerta CERRADA. t_ce: 60s
-INFO  [Entrada] Pareja 1 — t_ce agotado (60s) → 'light.led_entrada' apagado
-INFO  [Entrada] Pareja 1 — Encendido MANUAL. Puerta: off. Timer (t_mc): 120s
-INFO  [Entrada] Pareja 1 — t_ce cancelado: puerta volvió a abrirse → control a t_ab
-WARN  [Entrada] Pareja 1 — OMITIDO: Sensor no disponible (unavailable)
-WARN  [Entrada] Pareja 1 — OMITIDO: Dispositivo no disponible (unavailable)
-```
+**Valores especiales para los tres tiempos:**
 
-**Versiones:**
-| Versión | Fecha | Cambios |
-|---|---|---|
-| 2.1.0 | 2025-05-20 | Lógica definitiva: t_ab al abrir, -1=ilimitado en todos los timers |
-| 2.0.0 | 2025-05-20 | Selector entity para detección de encendido manual |
-| 1.2.0 | 2025-05-20 | Eliminados valores globales por defecto |
-| 1.1.0 | 2025-05-20 | Parámetro t_mc: encendido manual + puerta cerrada |
-| 1.0.0 | 2025-05-20 | Versión inicial |
+| Valor | Resultado |
+|---|---|
+| `-1` | Encendido ilimitado; no hay apagado automático |
+| `0` | Apagado inmediato |
+| `1…3600` | Espera esa cantidad de segundos antes de apagar |
 
-[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/door_light/BP_Multi_Door_Light.yaml)
-🔗 [Ver código fuente](blueprints/automation/door_light/BP_Multi_Door_Light.yaml)
+Antes de apagar, el blueprint confirma que la puerta conserva el estado
+esperado y que la carga continúa encendida. Un cambio de estado reinicia solo
+la automatización de esa pareja; nunca cancela el temporizador de otra zona.
 
 ---
 
-### 🌦 3. Presencia → Luz / Interruptor con Horario y Clima
+### 🌦 3. Presencia → Luz / Interruptor con horario y clima
 
-> **Control de una carga por presencia, con horarios, clima y temporizadores**
+> Controla una carga por presencia, horario y clima, con límite máximo opcional.
+
+[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/presence_climate/BP_Presencia_Interruptor_Clima.yaml)
+
+🔗 [Ver código fuente](blueprints/automation/presence_climate/BP_Presencia_Interruptor_Clima.yaml)
 
 Controla una luz, interruptor o relé a partir de un sensor binario de presencia.
-El encendido automático se limita por día y horario, pero también puede habilitarse
-durante un horario alternativo cuando la entidad meteorológica indique lluvia o
-nubosidad. Requiere **Home Assistant 2026.1.0 o superior**.
-
-El tiempo máximo es opcional: resulta útil en zonas de lavandería o trabajo donde
-la vibración puede mantener un sensor activo por error. En cocina, estudio u otras
-zonas donde ese límite no interesa, se puede desactivar y el ciclo queda sin tiempo
-máximo mientras exista presencia.
+El encendido automático se autoriza dentro del horario normal o dentro de un
+horario alternativo cuando la entidad meteorológica coincide con los estados
+seleccionados.
 
 **Comportamiento:**
 
 | Evento | Resultado |
 |---|---|
-| Nueva presencia dentro del horario autorizado | Solicita el encendido |
-| Encendido automático o manual | Inicia un único ciclo de control |
-| Encendido sin presencia | Espera la validación; si no aparece presencia, apaga |
-| Ausencia continua | Apaga tras el tiempo de ausencia |
-| Tiempo máximo habilitado y agotado | Apaga aunque el sensor continúe en `on` |
-| Tiempo máximo deshabilitado | Mantiene el ciclo sin límite mientras haya presencia |
-| Apagado físico o externo | Termina inmediatamente el ciclo activo |
+| Nueva presencia dentro de un horario autorizado | Solicita el encendido |
+| Encendido automático o manual | Inicia un ciclo de control |
+| Encendido sin presencia | Espera la validación; apaga si la presencia no aparece |
+| Ausencia continua | Apaga después del tiempo configurado |
+| Máximo habilitado y agotado | Apaga aunque el sensor continúe en `on` |
+| Máximo deshabilitado | No limita el ciclo mientras exista presencia |
+| Apagado físico o externo | Finaliza inmediatamente el ciclo |
 
-**Parámetros principales:**
+**Valores predeterminados:**
 
-| Parámetro | Descripción | Por defecto |
-|---|---|---|
-| Sensor de presencia | `binary_sensor.*`: `on` = presencia, `off` = ausencia | — |
-| Luz, interruptor o relé | Entidad `light.*` o `switch.*` | — |
-| Espera inicial por presencia | Validación tras encender sin presencia | 5 s |
-| Ausencia antes de apagar | Ausencia continua necesaria para apagar | 5 s |
-| Aplicar tiempo máximo | Activa o desactiva el límite absoluto del ciclo | Activado |
-| Tiempo máximo | Se cuenta desde el encendido real | 5 min |
-| Horario normal | Puede atravesar la medianoche | 17:30–06:40 |
-| Horario climático | Cubre el tramo restante si el clima coincide | 06:40–17:30 |
-| Estados climáticos | Condiciones que habilitan el horario alternativo | Nublado, lluvia, lluvia fuerte y tormenta con lluvia |
-
-Los horarios predeterminados son complementarios: el normal cubre
-`17:30–06:40` y el climático cubre `06:40–17:30`. Así, el clima adverso puede
-autorizar el tramo diurno que no cubre el horario normal.
-
-**Reglas de temporización importantes:**
-
-- El tiempo máximo se cuenta desde el encendido real del dispositivo.
-- Durante la validación se usa el plazo más corto entre la validación y el máximo restante.
-- Al alcanzar el máximo no se vuelve a encender mientras el sensor continúe en `on`.
-- Un nuevo encendido manual inicia un ciclo completo nuevo.
-- Aunque el máximo esté deshabilitado, la ausencia y el apagado físico siguen teniendo prioridad.
-
-**Versiones:**
-
-| Versión | Fecha | Cambios |
-|---|---|---|
-| 0.2.1 BETA | 2026-09-02 | Horario climático predeterminado complementario: 06:40–17:30 |
-| 0.2.0 BETA | 2026-09-02 | Tiempo máximo opcional y límite absoluto desde el encendido |
-| 0.1.0 BETA | 2026-09-02 | Primera versión beta |
-
-[![Importar Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/presence_climate/BP_Presencia_Interruptor_Clima.yaml)
-🔗 [Ver código fuente](blueprints/automation/presence_climate/BP_Presencia_Interruptor_Clima.yaml)
-
----
-
-## 🛠 Instalación manual
-
-Si prefieres instalar sin el botón de importación:
-
-1. Descarga el archivo `.yaml` del blueprint que necesitas
-2. Cópialo a tu instalación de HA:
-
-```
-config/blueprints/automation/switch_light/BP_Multi_Switch_Light.yaml
-config/blueprints/automation/door_light/BP_Multi_Door_Light.yaml
-config/blueprints/automation/presence_climate/BP_Presencia_Interruptor_Clima.yaml
-```
-
-3. En HA: **Configuración → Automatizaciones → Planos → ⋮ → Recargar planos**
-4. Crea una nueva automatización desde el plano deseado
-
----
-
-## 🔍 Logs y trazas en Home Assistant
-
-Los blueprints con logger dedicado se consultan en **Configuración → Registros**.
-El blueprint de presencia utiliza las trazas nativas de la automatización:
-
-| Blueprint | Diagnóstico |
+| Parámetro | Valor |
 |---|---|
-| Switch ↔ Light | `blueprint.sync_switch_luz` |
-| Door → Light | `blueprint.door_light` |
-| Presence → Light / Switch | Trazas de la automatización, sin logger dedicado |
+| Validación inicial | 5 s |
+| Ausencia antes de apagar | 5 s |
+| Aplicar tiempo máximo | Activado |
+| Tiempo máximo | 5 min |
+| Horario normal | 17:30–06:40 |
+| Horario climático | 06:40–17:30 |
+| Clima habilitante | Nublado, lluvia, lluvia fuerte y tormenta con lluvia |
+
+Los horarios predeterminados son complementarios. El normal cubre la tarde,
+la noche y la madrugada; el climático cubre el resto del día solamente cuando
+el clima lo justifica.
+
+El máximo es útil en lavanderías o áreas de trabajo donde una lavadora o
+secadora puede producir falsas presencias por vibración. Puede desactivarse en
+cocina, estudio u otras zonas en las que la ausencia sea suficiente para apagar.
+
+**Reglas de tiempo:**
+
+- El máximo comienza en el encendido real del dispositivo.
+- Durante la validación vence el plazo más corto entre validación y máximo restante.
+- Cuando se alcanza el máximo, no se enciende otra vez hasta una nueva presencia.
+- Un encendido manual posterior inicia un ciclo nuevo.
+- La ausencia y el apagado físico conservan prioridad aunque el máximo esté desactivado.
+
+---
+
+## ✨ Criterios de diseño
+
+- Home Assistant **2026.1.0 o superior**; no se mantiene compatibilidad con versiones antiguas.
+- Sintaxis moderna: `triggers`, `conditions`, `actions` y llamadas mediante `action`.
+- Una automatización por pareja o zona para trazas y reinicios independientes.
+- YAML explícito y visible en el editor; Jinja se reserva para cálculos de tiempo inevitables.
+- Entradas agrupadas en secciones plegables y con selectores actuales.
+- Comentarios dentro del código para explicar decisiones y estados límite.
+- GitHub `main` es la fuente canónica para importar y desplegar los blueprints.
+
+---
+
+## 🧭 Instalación y despliegue
+
+1. Usa el botón **Importar Blueprint** del blueprint deseado.
+2. En Home Assistant abre **Configuración → Automatizaciones y escenas → Planos**.
+3. Crea una automatización desde el plano importado.
+4. Repite el paso anterior por cada pareja o zona; no vuelvas a importar el archivo.
+5. Asigna un alias que identifique claramente el espacio y los dispositivos.
+
+Las rutas canónicas son:
+
+```text
+blueprints/automation/switch_light_single/BP_Switch_Light.yaml
+blueprints/automation/door_light_single/BP_Door_Light.yaml
+blueprints/automation/presence_climate/BP_Presencia_Interruptor_Clima.yaml
+```
+
+Para actualizar un blueprint ya importado, vuelve a importarlo desde su misma URL
+y recarga las automatizaciones que lo utilizan.
+
+---
+
+## 🔍 Diagnóstico
+
+Los tres blueprints recomendados usan las **trazas nativas de cada
+automatización**. En Home Assistant abre la automatización concreta y selecciona
+**Trazas**. Al existir una instancia por pareja, la traza muestra directamente
+qué habitación y qué temporizador produjeron el resultado.
+
+Los estados `unknown` y `unavailable` no se convierten en órdenes de encendido o
+apagado. Esto evita sincronizaciones no deseadas después de una desconexión o
+del reinicio de Home Assistant.
+
+---
+
+## 🗃 Blueprints multipareja heredados
+
+Las versiones anteriores se conservan para consulta y reversión. Siguen siendo
+válidas para las instalaciones existentes, pero no son la estructura recomendada
+para despliegues nuevos porque una sola ejecución puede mezclar trazas o reiniciar
+temporizadores de parejas distintas.
+
+| Blueprint heredado | Código | Importar |
+|---|---|---|
+| Switch ↔ Light — hasta 10 parejas | [Fuente](blueprints/automation/switch_light/BP_Multi_Switch_Light.yaml) | [Importar](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/switch_light/BP_Multi_Switch_Light.yaml) |
+| Door → Light — hasta 10 parejas | [Fuente](blueprints/automation/door_light/BP_Multi_Door_Light.yaml) | [Importar](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/ejscuriel/ha-blueprints/main/blueprints/automation/door_light/BP_Multi_Door_Light.yaml) |
+
+No es necesario borrar estas versiones al migrar: basta con que las nuevas
+automatizaciones apunten a los blueprints de una pareja.
+
+---
+
+## 🧾 Versiones
+
+| Blueprint | Versión | Fecha | Estado |
+|---|---:|---:|---|
+| Interruptor ↔ Luz — una pareja | 2.0.0 | 2026-09-02 | Recomendado |
+| Puerta → Luz / Interruptor — una pareja | 3.0.0 | 2026-09-02 | Recomendado |
+| Presencia → Luz / Interruptor | 0.2.1 BETA | 2026-09-02 | Beta controlada |
+| Switch ↔ Light — multipareja | 1.2.0 | 2025-05-20 | Heredado |
+| Door → Light — multipareja | 2.1.0 | 2025-05-20 | Heredado |
 
 ---
 
 ## 🤝 Contribuciones
 
-¿Encontraste un bug o tienes una mejora? Abre un **Issue** o un **Pull Request**.
-¿Tienes un caso de uso diferente? Escríbenos a admin@evotechltda.com
+¿Encontraste un problema o tienes una mejora? Abre un **Issue** o un **Pull Request**.
+Para casos de uso distintos, escribe a admin@evotechltda.com.
 
 ---
 
 ## 📄 Licencia
 
-MIT License — Copyright (c) 2025 EVOTECH LTDA — Eduardo Sánchez Curiel
+MIT License — Copyright (c) 2025–2026 EVOTECH LTDA — Eduardo Sánchez Curiel.
 
 Se permite el uso, copia y modificación libre con crédito al autor original.
 
