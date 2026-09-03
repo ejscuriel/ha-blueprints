@@ -1,0 +1,529 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  BLUEPRINT: Presencia → Light / Switch con horario, clima y temporizadores ║
+# ╠══════════════════════════════════════════════════════════════════════════════╣
+# ║  Descripción : Controla una luz, interruptor o relé mediante presencia,    ║
+# ║                horario normal y horario complementario por clima.          ║
+# ║                                                                            ║
+# ║  Lógica de control:                                                        ║
+# ║    · Presencia nueva + horario autorizado → solicita encendido             ║
+# ║    · Dispositivo ON → inicia un único ciclo de control                      ║
+# ║    · ON sin presencia → valida presencia antes de mantener encendido       ║
+# ║    · Ausencia confirmada → apaga                                           ║
+# ║    · Tiempo máximo opcional → apaga desde el encendido real                ║
+# ║    · Dispositivo OFF físico/externo → termina el ciclo                     ║
+# ║                                                                            ║
+# ║  Autor       : Eduardo Sánchez Curiel                                      ║
+# ║  Empresa     : EVOTECH LTDA                                                ║
+# ║  País        : Colombia                                                    ║
+# ║  Web         : www.evotechltda.com                                         ║
+# ║  Contacto    : admin@evotechltda.com                                       ║
+# ║                                                                            ║
+# ║  Versión     : 0.2.1 BETA                                                  ║
+# ║  Fecha       : 2026-09-02                                                  ║
+# ║  Licencia    : MIT — libre uso, copia y modificación con crédito al autor ║
+# ║  Requisitos  : Home Assistant 2026.1.0 o superior                         ║
+# ║                                                                            ║
+# ║  Changelog   :                                                            ║
+# ║    0.2.1 (2026-09-02) — Horario climático complementario 06:40–17:30      ║
+# ║    0.2.0 (2026-09-02) — Tiempo máximo opcional y límite absoluto          ║
+# ║    0.1.0 (2026-09-02) — Primera versión beta                              ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+blueprint:
+  name: Presencia + Interruptor con horario, clima y temporizadores
+  description: |
+    **By EVOTECH LTDA · Eduardo Sánchez Curiel · Colombia**
+
+    ## Objetivo
+
+    Controla una luz, interruptor o relé utilizando un sensor de presencia.
+    Está diseñado para cargas que también pueden accionarse físicamente.
+
+    **Compatibilidad:** Home Assistant 2026.1.0 o posterior.
+
+    ## Funcionamiento
+
+    - Una nueva presencia en horario permitido solicita el encendido.
+    - El encendido del dispositivo, automático o manual, inicia un único ciclo.
+    - Si se enciende sin presencia, espera el tiempo de validación configurado.
+    - Con presencia, apaga después del tiempo de ausencia configurado.
+    - Opcionalmente, cada ciclo tiene un tiempo máximo contado desde el
+      encendido real, aunque el sensor permanezca en `on`.
+    - Durante la validación prevalece el plazo más corto entre la propia
+      validación y el tiempo máximo habilitado.
+    - Si se alcanza el máximo, no vuelve a encender mientras la presencia
+      siga en `on`.
+    - El tiempo máximo puede desactivarse en zonas donde no sea necesario.
+    - Un nuevo encendido manual inicia un ciclo completo adicional.
+    - El apagado físico tiene prioridad y termina el ciclo activo.
+    - El encendido automático puede usar un horario normal o uno anticipado
+      cuando la entidad meteorológica reporte lluvia o nubosidad.
+
+    La rama de presencia solamente solicita `turn_on`. La rama del dispositivo
+    administra la validación, la ausencia y el tiempo máximo. Esto evita ciclos
+    recurrentes y temporizadores duplicados.
+
+    El tiempo máximo es recomendable en zonas con vibraciones o posibles falsos
+    positivos. Puede desactivarse en zonas como cocina o estudio, donde basta el
+    apagado por ausencia.
+
+    Con los valores predeterminados, el horario climático (`06:40–17:30`)
+    complementa exactamente el horario normal (`17:30–06:40`). De este modo,
+    el clima adverso puede habilitar el tramo diurno que normalmente no está
+    cubierto.
+
+    **Versión 0.2.1 BETA — probar primero en una sola zona.**
+
+    www.evotechltda.com · admin@evotechltda.com
+
+  domain: automation
+  homeassistant:
+    min_version: "2026.1.0"
+  author: "Eduardo Sánchez Curiel — EVOTECH LTDA"
+  source_url: "https://github.com/ejscuriel/ha-blueprints/blob/main/blueprints/automation/presence_climate/BP_Presencia_Interruptor_Clima.yaml"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  #  PARÁMETROS DE ENTRADA
+  # ────────────────────────────────────────────────────────────────────────────
+  input:
+    dispositivos:
+      name: "📡 Dispositivos"
+      icon: mdi:motion-sensor
+      collapsed: false
+      input:
+        sensor_presencia:
+          name: Sensor de presencia
+          description: Sensor binario que usa `on` para presencia y `off` para ausencia.
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+              multiple: false
+
+        dispositivo_controlado:
+          name: Luz, interruptor o relé
+          description: Entidad que se encenderá y apagará. Acepta `light.*` y `switch.*`.
+          selector:
+            entity:
+              filter:
+                - domain:
+                    - light
+                    - switch
+              multiple: false
+
+    temporizadores:
+      name: "⏱ Temporizadores"
+      icon: mdi:timer-outline
+      collapsed: false
+      input:
+        tiempo_validacion:
+          name: Espera inicial por presencia
+          description: >
+            Tiempo que se espera después de un encendido sin presencia. Si el
+            sensor no cambia a `on`, el dispositivo se apaga.
+          default:
+            hours: 0
+            minutes: 0
+            seconds: 5
+          selector:
+            duration:
+              enable_day: false
+              enable_millisecond: false
+
+        tiempo_ausencia:
+          name: Ausencia antes de apagar
+          description: Tiempo continuo en `off` requerido para apagar anticipadamente.
+          default:
+            hours: 0
+            minutes: 0
+            seconds: 5
+          selector:
+            duration:
+              enable_day: false
+              enable_millisecond: false
+
+        habilitar_tiempo_maximo:
+          name: Aplicar tiempo máximo
+          description: >
+            Si está activado, limita la duración total desde el encendido real.
+            Si está desactivado, el dispositivo puede permanecer encendido sin
+            límite mientras exista presencia, pero seguirá apagándose por
+            ausencia o por un apagado físico.
+          default: true
+          selector:
+            boolean:
+
+        tiempo_maximo:
+          name: Tiempo máximo de cada ciclo
+          description: >
+            Duración máxima total desde el encendido, cuando la opción anterior
+            está activada. Un nuevo encendido manual inicia otro ciclo completo.
+          default:
+            hours: 0
+            minutes: 5
+            seconds: 0
+          selector:
+            duration:
+              enable_day: true
+              enable_millisecond: false
+
+    horario_normal:
+      name: "🕒 Horario normal de encendido automático"
+      icon: mdi:clock-outline
+      collapsed: false
+      input:
+        hora_inicio_normal:
+          name: Hora inicial normal
+          default: "17:30:00"
+          selector:
+            time:
+
+        hora_fin_normal:
+          name: Hora final normal
+          description: Puede ser menor que la inicial para atravesar la medianoche.
+          default: "06:40:00"
+          selector:
+            time:
+
+        dias_permitidos:
+          name: Días permitidos
+          description: Días en los que se permite el encendido automático.
+          default:
+            - mon
+            - tue
+            - wed
+            - thu
+            - fri
+            - sat
+            - sun
+          selector:
+            select:
+              multiple: true
+              mode: dropdown
+              options:
+                - label: Lunes
+                  value: mon
+                - label: Martes
+                  value: tue
+                - label: Miércoles
+                  value: wed
+                - label: Jueves
+                  value: thu
+                - label: Viernes
+                  value: fri
+                - label: Sábado
+                  value: sat
+                - label: Domingo
+                  value: sun
+
+    horario_climatico:
+      name: "🌦 Horario alternativo por clima"
+      icon: mdi:weather-cloudy
+      collapsed: false
+      input:
+        entidad_clima:
+          name: Entidad meteorológica
+          description: >
+            Entidad `weather.*` utilizada para habilitar el horario alternativo.
+            Si está `unknown` o `unavailable`, solo funciona el horario normal.
+          selector:
+            entity:
+              filter:
+                - domain: weather
+              multiple: false
+
+        estados_climaticos:
+          name: Estados que habilitan el horario alternativo
+          description: Selecciona lluvia y los niveles de nubosidad deseados.
+          default:
+            - cloudy
+            - rainy
+            - pouring
+            - lightning-rainy
+          selector:
+            select:
+              multiple: true
+              custom_value: true
+              mode: dropdown
+              options:
+                - label: Nublado
+                  value: cloudy
+                - label: Parcialmente nublado
+                  value: partlycloudy
+                - label: Lluvioso
+                  value: rainy
+                - label: Lluvia fuerte
+                  value: pouring
+                - label: Tormenta con lluvia
+                  value: lightning-rainy
+                - label: Tormenta
+                  value: lightning
+                - label: Granizo
+                  value: hail
+
+        hora_inicio_clima:
+          name: Hora inicial con clima adverso
+          description: >
+            De forma predeterminada comienza cuando termina el horario normal,
+            para cubrir el resto del día solamente si el clima lo requiere.
+          default: "06:40:00"
+          selector:
+            time:
+
+        hora_fin_clima:
+          name: Hora final con clima adverso
+          description: >
+            De forma predeterminada termina cuando comienza el horario normal.
+            Puede ser menor que la inicial para atravesar la medianoche.
+          default: "17:30:00"
+          selector:
+            time:
+
+# ==============================================================
+# DISPARADORES
+# ==============================================================
+triggers:
+  # La presencia únicamente solicita el encendido automático.
+  - trigger: state
+    alias: Nueva presencia detectada
+    entity_id: !input sensor_presencia
+    to: "on"
+    id: presencia_detectada
+
+  # Todo encendido real del dispositivo inicia un ciclo de control,
+  # tanto si fue automático como si ocurrió mediante el control físico.
+  - trigger: state
+    alias: Dispositivo encendido
+    entity_id: !input dispositivo_controlado
+    to: "on"
+    id: dispositivo_encendido
+
+conditions: []
+
+# ==============================================================
+# ACCIONES
+# ==============================================================
+actions:
+  - alias: Ejecutar la rama correspondiente al evento recibido
+    choose:
+      # ----------------------------------------------------------
+      # RAMA 1 — NUEVA PRESENCIA
+      # ----------------------------------------------------------
+      - conditions:
+          - condition: trigger
+            id: presencia_detectada
+
+          # Los días seleccionados aplican a ambos horarios.
+          - condition: time
+            weekday: !input dias_permitidos
+
+          # Autorizar si estamos en el horario normal, o si el clima
+          # coincide con los estados elegidos y estamos en su horario.
+          - condition: or
+            conditions:
+              - condition: time
+                after: !input hora_inicio_normal
+                before: !input hora_fin_normal
+
+              - condition: and
+                conditions:
+                  - condition: state
+                    entity_id: !input entidad_clima
+                    state: !input estados_climaticos
+
+                  - condition: time
+                    after: !input hora_inicio_clima
+                    before: !input hora_fin_clima
+
+        sequence:
+          # Esta rama termina inmediatamente después de solicitar ON.
+          # El cambio a ON dispara la segunda rama en una ejecución paralela.
+          - alias: Solicitar encendido automático
+            action: homeassistant.turn_on
+            target:
+              entity_id: !input dispositivo_controlado
+
+      # ----------------------------------------------------------
+      # RAMA 2 — DISPOSITIVO ENCENDIDO
+      # ----------------------------------------------------------
+      - conditions:
+          - condition: trigger
+            id: dispositivo_encendido
+
+        sequence:
+          # El límite absoluto se calcula desde el cambio real a ON. Así, el
+          # tiempo consumido por la validación también cuenta dentro del máximo.
+          - alias: Cargar opciones de duración
+            variables:
+              maximo_habilitado: !input habilitar_tiempo_maximo
+              duracion_maxima: !input tiempo_maximo
+              duracion_validacion: !input tiempo_validacion
+
+          - alias: Calcular el límite absoluto desde el encendido real
+            variables:
+              instante_limite: >
+                {% set d = duracion_maxima %}
+                {% set segundos =
+                  (d.days | default(0) | int * 86400) +
+                  (d.hours | default(0) | int * 3600) +
+                  (d.minutes | default(0) | int * 60) +
+                  (d.seconds | default(0) | int) %}
+                {{ as_timestamp(trigger.to_state.last_changed) + segundos }}
+
+          # ======================================================
+          # A. VALIDACIÓN INICIAL
+          # ======================================================
+          # Si el encendido ocurrió sin presencia, esperar el tiempo
+          # configurado. Esto cubre encendidos físicos o externos.
+          - alias: Validar un encendido iniciado sin presencia
+            if:
+              - condition: not
+                conditions:
+                  - condition: state
+                    entity_id: !input sensor_presencia
+                    state: "on"
+
+            then:
+              - alias: Esperar presencia, apagado o el primer límite aplicable
+                wait_for_trigger:
+                  - trigger: state
+                    entity_id: !input sensor_presencia
+                    to: "on"
+                    id: presencia_durante_validacion
+
+                  - trigger: state
+                    entity_id: !input dispositivo_controlado
+                    to: "off"
+                    id: apagado_fisico_validacion
+
+                # Si el máximo está habilitado, vence el plazo más corto:
+                # validación configurada o tiempo restante del ciclo.
+                timeout: >
+                  {% set d = duracion_validacion %}
+                  {% set validacion =
+                    (d.days | default(0) | int * 86400) +
+                    (d.hours | default(0) | int * 3600) +
+                    (d.minutes | default(0) | int * 60) +
+                    (d.seconds | default(0) | int) %}
+                  {% if maximo_habilitado | bool %}
+                    {% set restante =
+                      [instante_limite | float(0) - as_timestamp(now()), 0] | max %}
+                    {{ [validacion, restante] | min | int(0) }}
+                  {% else %}
+                    {{ validacion }}
+                  {% endif %}
+                continue_on_timeout: true
+
+              # Si el usuario apagó físicamente, finalizar este ciclo.
+              # Se usa wait.trigger.id para que un reencendido rápido no
+              # sea apagado por esta ejecución anterior.
+              - alias: Finalizar si el dispositivo fue apagado externamente
+                if:
+                  - condition: template
+                    value_template: >
+                      {{ wait.trigger is not none and
+                         wait.trigger.id == 'apagado_fisico_validacion' }}
+                then:
+                  - stop: Apagado físico durante la validación inicial
+
+          # Si el dispositivo ya no está encendido, no continuar.
+          - condition: state
+            entity_id: !input dispositivo_controlado
+            state: "on"
+
+          # ======================================================
+          # B. CICLO CON PRESENCIA
+          # ======================================================
+          - alias: Administrar el ciclo según exista presencia
+            if:
+              - condition: state
+                entity_id: !input sensor_presencia
+                state: "on"
+
+            then:
+              - alias: Esperar con límite máximo o de forma indefinida
+                choose:
+                  # Con máximo: esperar ausencia, apagado físico o el tiempo
+                  # restante del límite absoluto calculado desde el encendido.
+                  - conditions:
+                      - condition: template
+                        value_template: "{{ maximo_habilitado | bool }}"
+                    sequence:
+                      - alias: Esperar ausencia, apagado o tiempo máximo
+                        wait_for_trigger:
+                          - trigger: state
+                            entity_id: !input sensor_presencia
+                            to: "off"
+                            for: !input tiempo_ausencia
+                            id: ausencia_confirmada
+
+                          - trigger: state
+                            entity_id: !input dispositivo_controlado
+                            to: "off"
+                            id: apagado_fisico_ciclo
+
+                        timeout: >
+                          {{ [instante_limite | float(0) - as_timestamp(now()), 0]
+                             | max | int(0) }}
+                        continue_on_timeout: true
+
+                      - alias: Respetar el apagado físico o externo
+                        if:
+                          - condition: template
+                            value_template: >
+                              {{ wait.trigger is not none and
+                                 wait.trigger.id == 'apagado_fisico_ciclo' }}
+                        then:
+                          - stop: Apagado físico durante el ciclo activo
+
+                # Sin máximo: la espera es indefinida, pero la ausencia o el
+                # apagado físico continúan terminando el ciclo.
+                default:
+                  - alias: Esperar ausencia o apagado sin límite máximo
+                    wait_for_trigger:
+                      - trigger: state
+                        entity_id: !input sensor_presencia
+                        to: "off"
+                        for: !input tiempo_ausencia
+                        id: ausencia_confirmada
+
+                      - trigger: state
+                        entity_id: !input dispositivo_controlado
+                        to: "off"
+                        id: apagado_fisico_ciclo
+
+                  - alias: Respetar el apagado físico o externo
+                    if:
+                      - condition: template
+                        value_template: >
+                          {{ wait.trigger is not none and
+                             wait.trigger.id == 'apagado_fisico_ciclo' }}
+                    then:
+                      - stop: Apagado físico durante el ciclo activo
+
+              # Por ausencia confirmada o por timeout máximo, apagar.
+              - condition: state
+                entity_id: !input dispositivo_controlado
+                state: "on"
+
+              - alias: Apagar por ausencia o tiempo máximo
+                action: homeassistant.turn_off
+                target:
+                  entity_id: !input dispositivo_controlado
+
+            else:
+              # Terminó la validación inicial y aún no hay presencia.
+              - condition: state
+                entity_id: !input dispositivo_controlado
+                state: "on"
+
+              - alias: Apagar al finalizar la validación sin presencia
+                action: homeassistant.turn_off
+                target:
+                  entity_id: !input dispositivo_controlado
+
+# La rama de presencia es muy corta. La rama del dispositivo es la única
+# que conserva temporizadores. No se generan temporizadores duplicados.
+mode: parallel
+max: 5
+max_exceeded: silent
