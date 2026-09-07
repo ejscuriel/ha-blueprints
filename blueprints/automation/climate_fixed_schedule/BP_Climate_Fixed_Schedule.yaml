@@ -1,0 +1,959 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║ BLUEPRINT: Aire acondicionado — perfil obligatorio + 5 cambios programados ║
+# ╠══════════════════════════════════════════════════════════════════════════════╣
+# ║  Una instancia controla una sola entidad climate.                          ║
+# ║                                                                            ║
+# ║  · Cualquier transición desde off/unknown/unavailable a un modo activo     ║
+# ║    aplica el perfil inicial. Esto incluye cool, dry, auto, fan_only, heat  ║
+# ║    y cualquier otro modo que exponga la integración.                       ║
+# ║  · El modo HVAC elegido se aplica con cada perfil.                         ║
+# ║  · Hasta cinco horas opcionales cambian el perfil si el aire sigue activo. ║
+# ║  · Los modos de ventilador y oscilación admiten valores personalizados.    ║
+# ║  · Al finalizar verifica el resultado y registra cualquier problema.       ║
+# ║                                                                            ║
+# ║  Autor       : Eduardo Sánchez Curiel — EVOTECH LTDA                       ║
+# ║  Versión     : 1.4.0                                                       ║
+# ║  Fecha       : 2026-09-07                                                  ║
+# ║  Licencia    : MIT                                                         ║
+# ║  Requisitos  : Home Assistant 2026.1.0 o superior                         ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+blueprint:
+  name: Aire acondicionado — perfil obligatorio y hasta 5 horarios
+  description: |
+    **By EVOTECH LTDA · Eduardo Sánchez Curiel · Colombia**
+
+    Aplica un perfil fijo cada vez que una unidad de aire pasa de apagada a
+    cualquier modo activo. El disparo no depende del modo usado para encender:
+    incluye `cool`, `dry`, `auto`, `fan_only`, `heat` y cualquier otro estado
+    activo que reporte la integración.
+
+    Después de permanecer encendida durante un minuto, la unidad recibe el
+    perfil inicial completo. El modo HVAC seleccionado se vuelve a aplicar con
+    cada perfil programado.
+
+    También admite hasta cinco cambios programados. Cada horario es opcional y
+    solo actúa si la unidad continúa encendida en la hora exacta configurada.
+    Para usar menos de cinco, deja desactivados los horarios restantes.
+
+    Se recomienda crear una automatización independiente por cada unidad. Los
+    valores de ventilador y oscilación dependen de la integración: selecciona
+    una opción común o escribe exactamente el valor publicado por la entidad.
+
+    Cada instancia funciona en `mode: single`: una unidad nunca ejecuta dos
+    perfiles al mismo tiempo. Las instancias creadas para otros aires son
+    automatizaciones independientes. Si dos eventos de una misma unidad se
+    superponen, Home Assistant conserva la ejecución en curso y deja una
+    advertencia en el registro.
+
+    Si la entidad está `unknown` o `unavailable`, no envía órdenes de control y
+    registra la omisión. Después de cada perfil espera la actualización del
+    equipo, compara los valores recibidos y escribe en el registro cualquier
+    modo, temperatura, ventilador u oscilación que no se haya aplicado.
+
+    Por defecto solo se envían los parámetros cuyo valor necesita cambiar, para
+    evitar pitidos innecesarios. Cada perfil tiene una opción de reenvío
+    obligatorio que permite transmitir sus valores aunque ya coincidan; las
+    opciones marcadas como `No modificar` nunca se envían.
+
+    Los valores precargados reproducen el perfil vigente de la unidad de
+    Eduardo. Los cinco horarios permanecen desactivados hasta que el usuario
+    habilite expresamente los que quiera utilizar.
+
+    **Versión 1.4.0**
+
+  domain: automation
+  homeassistant:
+    min_version: "2026.1.0"
+  author: "Eduardo Sánchez Curiel — EVOTECH LTDA"
+  source_url: "https://github.com/ejscuriel/ha-blueprints/blob/main/blueprints/automation/climate_fixed_schedule/BP_Climate_Fixed_Schedule.yaml"
+
+  input:
+    unidad_y_control:
+      name: "❄️ Unidad y control obligatorio"
+      icon: mdi:air-conditioner
+      collapsed: false
+      input:
+        entidad_clima:
+          name: Unidad de aire acondicionado
+          description: Entidad `climate.*` que controlará esta automatización.
+          selector:
+            entity:
+              filter:
+                - domain: climate
+              multiple: false
+
+        modo_hvac_forzado:
+          name: Modo HVAC obligatorio
+          description: >
+            Modo que se aplicará en el perfil inicial y en todos los perfiles
+            horarios.
+          default: cool
+          selector:
+            select:
+              mode: dropdown
+              custom_value: true
+              options:
+                - label: Frío (cool)
+                  value: cool
+                - label: Seco / deshumidificar (dry)
+                  value: dry
+                - label: Automático (auto)
+                  value: auto
+                - label: Solo ventilador (fan_only)
+                  value: fan_only
+                - label: Calor (heat)
+                  value: heat
+                - label: Frío/calor automático (heat_cool)
+                  value: heat_cool
+
+        pausa_entre_ordenes:
+          name: Pausa entre órdenes
+          description: >
+            Separación entre las órdenes de modo, temperatura, ventilador y
+            oscilación. Es útil para equipos controlados por nube o infrarrojo.
+          default:
+            hours: 0
+            minutes: 0
+            seconds: 1
+          selector:
+            duration:
+              enable_day: false
+              enable_millisecond: false
+
+        acciones_adicionales:
+          name: Acciones adicionales
+          description: >
+            Opcional. Permite conservar acciones asociadas, por ejemplo encender
+            la luz del display del aire de Eduardo. Se ejecutan después de los
+            perfiles elegidos en el campo siguiente.
+          default: []
+          selector:
+            action:
+
+        ejecutar_acciones_adicionales_en:
+          name: Ejecutar las acciones adicionales en
+          description: >
+            Selecciona los eventos que también deben ejecutar las acciones
+            adicionales. Los valores precargados reproducen el uso actual del
+            display de Eduardo.
+          default:
+            - aire_encendido
+            - horario_1
+            - horario_2
+          selector:
+            select:
+              mode: list
+              multiple: true
+              options:
+                - label: Perfil inicial al encender
+                  value: aire_encendido
+                - label: Horario 1
+                  value: horario_1
+                - label: Horario 2
+                  value: horario_2
+                - label: Horario 3
+                  value: horario_3
+                - label: Horario 4
+                  value: horario_4
+                - label: Horario 5
+                  value: horario_5
+
+    perfil_inicial:
+      name: "🎯 Perfil obligatorio al encender"
+      icon: mdi:tune-variant
+      collapsed: false
+      input:
+        forzar_reenvio_inicial:
+          name: Reenviar el perfil inicial aunque ya coincida
+          description: >
+            Desactivado evita órdenes y pitidos innecesarios. Activado vuelve a
+            enviar cada parámetro configurado, aunque el estado actual sea igual.
+          default: false
+          selector:
+            boolean:
+
+        temperatura_inicial:
+          name: Temperatura inicial
+          description: >
+            Usa la unidad configurada en Home Assistant. Por ejemplo, 20 para
+            20 °C o 68 para 68 °F.
+          default: 21
+          selector:
+            number:
+              min: 5
+              max: 100
+              step: 0.5
+              mode: box
+
+        ventilador_inicial:
+          name: Ventilador inicial
+          description: >
+            Los nombres son sensibles a mayúsculas. Usa "No modificar" si la
+            integración no permite controlar esta opción.
+          default: low
+          selector: &selector_ventilador
+            select:
+              mode: dropdown
+              custom_value: true
+              options:
+                - label: No modificar
+                  value: __no_change__
+                - label: Automático (auto)
+                  value: auto
+                - label: Bajo (low)
+                  value: low
+                - label: Bajo-medio (LOW_MID)
+                  value: LOW_MID
+                - label: Medio (medium)
+                  value: medium
+                - label: Medio-alto (MID_HIGH)
+                  value: MID_HIGH
+                - label: Alto (high)
+                  value: high
+                - label: Silencioso (quiet)
+                  value: quiet
+                - label: Turbo (turbo)
+                  value: turbo
+
+        oscilacion_vertical_inicial:
+          name: Oscilación vertical inicial
+          description: Selecciona una opción o escribe el valor exacto de `swing_modes`.
+          default: Bottom
+          selector: &selector_vertical
+            select:
+              mode: dropdown
+              custom_value: true
+              options:
+                - label: No modificar
+                  value: __no_change__
+                - label: Arriba (Top)
+                  value: Top
+                - label: Medio-arriba 1 (MiddleTop1)
+                  value: MiddleTop1
+                - label: Medio-arriba 2 (MiddleTop2)
+                  value: MiddleTop2
+                - label: Medio-abajo 2 (MiddleBottom2)
+                  value: MiddleBottom2
+                - label: Medio-abajo 1 (MiddleBottom1)
+                  value: MiddleBottom1
+                - label: Abajo (Bottom)
+                  value: Bottom
+                - label: Oscilar (swing)
+                  value: swing
+                - label: Sin oscilación (off)
+                  value: "off"
+
+        oscilacion_horizontal_inicial:
+          name: Oscilación horizontal inicial
+          description: >
+            Selecciona una opción o escribe el valor exacto de
+            `swing_horizontal_modes`.
+          default: MiddleRight
+          selector: &selector_horizontal
+            select:
+              mode: dropdown
+              custom_value: true
+              options:
+                - label: No modificar
+                  value: __no_change__
+                - label: Izquierda (Left)
+                  value: Left
+                - label: Medio-izquierda (MiddleLeft)
+                  value: MiddleLeft
+                - label: Centro (Center)
+                  value: Center
+                - label: Medio-derecha (MiddleRight)
+                  value: MiddleRight
+                - label: Derecha (Right)
+                  value: Right
+                - label: Mitad izquierda (LeftHalf)
+                  value: LeftHalf
+                - label: Mitad derecha (RightHalf)
+                  value: RightHalf
+                - label: Oscilar (swing)
+                  value: swing
+                - label: Sin oscilación (off)
+                  value: "off"
+
+    horario_1:
+      name: "🕐 Horario 1"
+      icon: mdi:clock-outline
+      collapsed: true
+      input:
+        habilitar_horario_1:
+          name: Usar horario 1
+          default: false
+          selector:
+            boolean:
+        forzar_reenvio_horario_1:
+          name: Reenviar perfil 1 aunque ya coincida
+          description: Puede producir un pitido por cada parámetro configurado.
+          default: false
+          selector:
+            boolean:
+        hora_horario_1:
+          name: Hora 1
+          default: "22:00:00"
+          selector:
+            time:
+        temperatura_horario_1:
+          name: Temperatura 1
+          default: 22
+          selector: &selector_temperatura
+            number:
+              min: 5
+              max: 100
+              step: 0.5
+              mode: box
+        ventilador_horario_1:
+          name: Ventilador 1
+          default: low
+          selector: *selector_ventilador
+        oscilacion_vertical_horario_1:
+          name: Oscilación vertical 1
+          default: Bottom
+          selector: *selector_vertical
+        oscilacion_horizontal_horario_1:
+          name: Oscilación horizontal 1
+          default: MiddleRight
+          selector: *selector_horizontal
+
+    horario_2:
+      name: "🕑 Horario 2"
+      icon: mdi:clock-outline
+      collapsed: true
+      input:
+        habilitar_horario_2:
+          name: Usar horario 2
+          default: false
+          selector:
+            boolean:
+        forzar_reenvio_horario_2:
+          name: Reenviar perfil 2 aunque ya coincida
+          description: Puede producir un pitido por cada parámetro configurado.
+          default: false
+          selector:
+            boolean:
+        hora_horario_2:
+          name: Hora 2
+          default: "00:00:00"
+          selector:
+            time:
+        temperatura_horario_2:
+          name: Temperatura 2
+          default: 23
+          selector: *selector_temperatura
+        ventilador_horario_2:
+          name: Ventilador 2
+          default: low
+          selector: *selector_ventilador
+        oscilacion_vertical_horario_2:
+          name: Oscilación vertical 2
+          default: Bottom
+          selector: *selector_vertical
+        oscilacion_horizontal_horario_2:
+          name: Oscilación horizontal 2
+          default: MiddleRight
+          selector: *selector_horizontal
+
+    horario_3:
+      name: "🕒 Horario 3"
+      icon: mdi:clock-outline
+      collapsed: true
+      input:
+        habilitar_horario_3:
+          name: Usar horario 3
+          default: false
+          selector:
+            boolean:
+        forzar_reenvio_horario_3:
+          name: Reenviar perfil 3 aunque ya coincida
+          description: Puede producir un pitido por cada parámetro configurado.
+          default: false
+          selector:
+            boolean:
+        hora_horario_3:
+          name: Hora 3
+          default: "01:00:00"
+          selector:
+            time:
+        temperatura_horario_3:
+          name: Temperatura 3
+          default: 23
+          selector: *selector_temperatura
+        ventilador_horario_3:
+          name: Ventilador 3
+          default: low
+          selector: *selector_ventilador
+        oscilacion_vertical_horario_3:
+          name: Oscilación vertical 3
+          default: Bottom
+          selector: *selector_vertical
+        oscilacion_horizontal_horario_3:
+          name: Oscilación horizontal 3
+          default: MiddleRight
+          selector: *selector_horizontal
+
+    horario_4:
+      name: "🕓 Horario 4"
+      icon: mdi:clock-outline
+      collapsed: true
+      input:
+        habilitar_horario_4:
+          name: Usar horario 4
+          default: false
+          selector:
+            boolean:
+        forzar_reenvio_horario_4:
+          name: Reenviar perfil 4 aunque ya coincida
+          description: Puede producir un pitido por cada parámetro configurado.
+          default: false
+          selector:
+            boolean:
+        hora_horario_4:
+          name: Hora 4
+          default: "03:00:00"
+          selector:
+            time:
+        temperatura_horario_4:
+          name: Temperatura 4
+          default: 24
+          selector: *selector_temperatura
+        ventilador_horario_4:
+          name: Ventilador 4
+          default: low
+          selector: *selector_ventilador
+        oscilacion_vertical_horario_4:
+          name: Oscilación vertical 4
+          default: Bottom
+          selector: *selector_vertical
+        oscilacion_horizontal_horario_4:
+          name: Oscilación horizontal 4
+          default: MiddleRight
+          selector: *selector_horizontal
+
+    horario_5:
+      name: "🕔 Horario 5"
+      icon: mdi:clock-outline
+      collapsed: true
+      input:
+        habilitar_horario_5:
+          name: Usar horario 5
+          default: false
+          selector:
+            boolean:
+        forzar_reenvio_horario_5:
+          name: Reenviar perfil 5 aunque ya coincida
+          description: Puede producir un pitido por cada parámetro configurado.
+          default: false
+          selector:
+            boolean:
+        hora_horario_5:
+          name: Hora 5
+          default: "02:00:00"
+          selector:
+            time:
+        temperatura_horario_5:
+          name: Temperatura 5
+          default: 21
+          selector: *selector_temperatura
+        ventilador_horario_5:
+          name: Ventilador 5
+          default: low
+          selector: *selector_ventilador
+        oscilacion_vertical_horario_5:
+          name: Oscilación vertical 5
+          default: Bottom
+          selector: *selector_vertical
+        oscilacion_horizontal_horario_5:
+          name: Oscilación horizontal 5
+          default: MiddleRight
+          selector: *selector_horizontal
+
+trigger_variables:
+  _entidad_clima_disparador: !input entidad_clima
+
+variables:
+  entidad_clima: !input entidad_clima
+  modo_hvac_forzado: !input modo_hvac_forzado
+  ejecutar_acciones_adicionales_en: !input ejecutar_acciones_adicionales_en
+
+  forzar_reenvio_inicial: !input forzar_reenvio_inicial
+  temperatura_inicial: !input temperatura_inicial
+  ventilador_inicial: !input ventilador_inicial
+  oscilacion_vertical_inicial: !input oscilacion_vertical_inicial
+  oscilacion_horizontal_inicial: !input oscilacion_horizontal_inicial
+
+  habilitar_horario_1: !input habilitar_horario_1
+  forzar_reenvio_horario_1: !input forzar_reenvio_horario_1
+  temperatura_horario_1: !input temperatura_horario_1
+  ventilador_horario_1: !input ventilador_horario_1
+  oscilacion_vertical_horario_1: !input oscilacion_vertical_horario_1
+  oscilacion_horizontal_horario_1: !input oscilacion_horizontal_horario_1
+
+  habilitar_horario_2: !input habilitar_horario_2
+  forzar_reenvio_horario_2: !input forzar_reenvio_horario_2
+  temperatura_horario_2: !input temperatura_horario_2
+  ventilador_horario_2: !input ventilador_horario_2
+  oscilacion_vertical_horario_2: !input oscilacion_vertical_horario_2
+  oscilacion_horizontal_horario_2: !input oscilacion_horizontal_horario_2
+
+  habilitar_horario_3: !input habilitar_horario_3
+  forzar_reenvio_horario_3: !input forzar_reenvio_horario_3
+  temperatura_horario_3: !input temperatura_horario_3
+  ventilador_horario_3: !input ventilador_horario_3
+  oscilacion_vertical_horario_3: !input oscilacion_vertical_horario_3
+  oscilacion_horizontal_horario_3: !input oscilacion_horizontal_horario_3
+
+  habilitar_horario_4: !input habilitar_horario_4
+  forzar_reenvio_horario_4: !input forzar_reenvio_horario_4
+  temperatura_horario_4: !input temperatura_horario_4
+  ventilador_horario_4: !input ventilador_horario_4
+  oscilacion_vertical_horario_4: !input oscilacion_vertical_horario_4
+  oscilacion_horizontal_horario_4: !input oscilacion_horizontal_horario_4
+
+  habilitar_horario_5: !input habilitar_horario_5
+  forzar_reenvio_horario_5: !input forzar_reenvio_horario_5
+  temperatura_horario_5: !input temperatura_horario_5
+  ventilador_horario_5: !input ventilador_horario_5
+  oscilacion_vertical_horario_5: !input oscilacion_vertical_horario_5
+  oscilacion_horizontal_horario_5: !input oscilacion_horizontal_horario_5
+
+triggers:
+  # El temporizador pertenece al disparador, no a la ejecución. Por eso el modo
+  # single permanece libre durante el minuto de estabilización del equipo.
+  - trigger: template
+    alias: Unidad encendida de forma continua durante un minuto
+    value_template: >
+      {{
+        states(_entidad_clima_disparador)
+        not in ['off', 'unknown', 'unavailable']
+      }}
+    for: "00:01:00"
+    id: aire_encendido
+
+  - trigger: time
+    alias: Hora del perfil 1
+    at: !input hora_horario_1
+    enabled: !input habilitar_horario_1
+    id: horario_1
+
+  - trigger: time
+    alias: Hora del perfil 2
+    at: !input hora_horario_2
+    enabled: !input habilitar_horario_2
+    id: horario_2
+
+  - trigger: time
+    alias: Hora del perfil 3
+    at: !input hora_horario_3
+    enabled: !input habilitar_horario_3
+    id: horario_3
+
+  - trigger: time
+    alias: Hora del perfil 4
+    at: !input hora_horario_4
+    enabled: !input habilitar_horario_4
+    id: horario_4
+
+  - trigger: time
+    alias: Hora del perfil 5
+    at: !input hora_horario_5
+    enabled: !input habilitar_horario_5
+    id: horario_5
+
+# Solo se inicia una ejecución al cumplirse el minuto de encendido o cuando llega
+# una hora habilitada. La disponibilidad y el estado encendido se validan antes
+# de enviar cualquier orden.
+conditions:
+  - condition: template
+    alias: Validar que el evento requiere una acción
+    value_template: >
+      {% if trigger.id == 'aire_encendido' %}
+        true
+      {% elif trigger.id == 'horario_1' %}
+        {{ habilitar_horario_1 | bool }}
+      {% elif trigger.id == 'horario_2' %}
+        {{ habilitar_horario_2 | bool }}
+      {% elif trigger.id == 'horario_3' %}
+        {{ habilitar_horario_3 | bool }}
+      {% elif trigger.id == 'horario_4' %}
+        {{ habilitar_horario_4 | bool }}
+      {% elif trigger.id == 'horario_5' %}
+        {{ habilitar_horario_5 | bool }}
+      {% else %}
+        false
+      {% endif %}
+
+actions:
+  - alias: Validar disponibilidad y estado antes de controlar la unidad
+    choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ states(entidad_clima) in ['unknown', 'unavailable'] }}
+        sequence:
+          - action: system_log.write
+            alias: Registrar unidad no disponible
+            data:
+              level: warning
+              logger: blueprints.evotech.climate_fixed_schedule
+              message: >
+                Perfil {{ trigger.id }} omitido: {{ entidad_clima }} está
+                {{ states(entidad_clima) }}. No se envió ninguna orden de control.
+          - stop: Unidad de aire no disponible; perfil omitido
+
+      - conditions:
+          - condition: state
+            entity_id: !input entidad_clima
+            state: "off"
+        sequence:
+          - stop: Unidad apagada; el perfil horario no corresponde
+
+  - alias: Identificar el evento y cargar el perfil correspondiente
+    variables:
+      forzar_reenvio_perfil: >
+        {% if trigger.id == 'horario_1' %}
+          {{ forzar_reenvio_horario_1 }}
+        {% elif trigger.id == 'horario_2' %}
+          {{ forzar_reenvio_horario_2 }}
+        {% elif trigger.id == 'horario_3' %}
+          {{ forzar_reenvio_horario_3 }}
+        {% elif trigger.id == 'horario_4' %}
+          {{ forzar_reenvio_horario_4 }}
+        {% elif trigger.id == 'horario_5' %}
+          {{ forzar_reenvio_horario_5 }}
+        {% else %}
+          {{ forzar_reenvio_inicial }}
+        {% endif %}
+      temperatura_perfil: >
+        {% if trigger.id == 'horario_1' %}
+          {{ temperatura_horario_1 }}
+        {% elif trigger.id == 'horario_2' %}
+          {{ temperatura_horario_2 }}
+        {% elif trigger.id == 'horario_3' %}
+          {{ temperatura_horario_3 }}
+        {% elif trigger.id == 'horario_4' %}
+          {{ temperatura_horario_4 }}
+        {% elif trigger.id == 'horario_5' %}
+          {{ temperatura_horario_5 }}
+        {% else %}
+          {{ temperatura_inicial }}
+        {% endif %}
+      ventilador_perfil: >
+        {% if trigger.id == 'horario_1' %}
+          {{ ventilador_horario_1 }}
+        {% elif trigger.id == 'horario_2' %}
+          {{ ventilador_horario_2 }}
+        {% elif trigger.id == 'horario_3' %}
+          {{ ventilador_horario_3 }}
+        {% elif trigger.id == 'horario_4' %}
+          {{ ventilador_horario_4 }}
+        {% elif trigger.id == 'horario_5' %}
+          {{ ventilador_horario_5 }}
+        {% else %}
+          {{ ventilador_inicial }}
+        {% endif %}
+      oscilacion_vertical_perfil: >
+        {% if trigger.id == 'horario_1' %}
+          {{ oscilacion_vertical_horario_1 }}
+        {% elif trigger.id == 'horario_2' %}
+          {{ oscilacion_vertical_horario_2 }}
+        {% elif trigger.id == 'horario_3' %}
+          {{ oscilacion_vertical_horario_3 }}
+        {% elif trigger.id == 'horario_4' %}
+          {{ oscilacion_vertical_horario_4 }}
+        {% elif trigger.id == 'horario_5' %}
+          {{ oscilacion_vertical_horario_5 }}
+        {% else %}
+          {{ oscilacion_vertical_inicial }}
+        {% endif %}
+      oscilacion_horizontal_perfil: >
+        {% if trigger.id == 'horario_1' %}
+          {{ oscilacion_horizontal_horario_1 }}
+        {% elif trigger.id == 'horario_2' %}
+          {{ oscilacion_horizontal_horario_2 }}
+        {% elif trigger.id == 'horario_3' %}
+          {{ oscilacion_horizontal_horario_3 }}
+        {% elif trigger.id == 'horario_4' %}
+          {{ oscilacion_horizontal_horario_4 }}
+        {% elif trigger.id == 'horario_5' %}
+          {{ oscilacion_horizontal_horario_5 }}
+        {% else %}
+          {{ oscilacion_horizontal_inicial }}
+        {% endif %}
+
+  - alias: Aplicar el perfil sin ejecuciones simultáneas
+    sequence:
+      - alias: Validar y aplicar el modo HVAC obligatorio
+        choose:
+          - conditions:
+              - condition: template
+                value_template: >
+                  {{
+                    states(entidad_clima)
+                      not in ['off', 'unknown', 'unavailable']
+                    and modo_hvac_forzado in
+                      (state_attr(entidad_clima, 'hvac_modes') or [])
+                  }}
+            sequence:
+              - alias: Cambiar el modo solamente si es necesario
+                if:
+                  - condition: template
+                    value_template: >
+                      {{
+                        forzar_reenvio_perfil | bool
+                        or states(entidad_clima) != modo_hvac_forzado
+                      }}
+                then:
+                  - action: climate.set_hvac_mode
+                    alias: Aplicar modo HVAC obligatorio
+                    continue_on_error: true
+                    target:
+                      entity_id: "{{ entidad_clima }}"
+                    data:
+                      hvac_mode: "{{ modo_hvac_forzado }}"
+                  - delay: !input pausa_entre_ordenes
+      - alias: Aplicar la temperatura si cambió
+        if:
+          - condition: template
+            value_template: >
+              {{
+                states(entidad_clima)
+                  not in ['off', 'unknown', 'unavailable']
+                and (
+                  forzar_reenvio_perfil | bool
+                  or (state_attr(entidad_clima, 'temperature') | float(-999))
+                    != (temperatura_perfil | float)
+                )
+              }}
+        then:
+          - action: climate.set_temperature
+            alias: Aplicar temperatura del perfil
+            continue_on_error: true
+            target:
+              entity_id: "{{ entidad_clima }}"
+            data:
+              temperature: "{{ temperatura_perfil | float }}"
+          - delay: !input pausa_entre_ordenes
+
+      - alias: Aplicar el ventilador seleccionado
+        choose:
+          - conditions:
+              - condition: template
+                value_template: >
+                  {{
+                    states(entidad_clima)
+                      not in ['off', 'unknown', 'unavailable']
+                    and ventilador_perfil != '__no_change__'
+                    and ventilador_perfil in
+                      (state_attr(entidad_clima, 'fan_modes') or [])
+                  }}
+            sequence:
+              - alias: Cambiar el ventilador solamente si es necesario
+                if:
+                  - condition: template
+                    value_template: >
+                      {{
+                        forzar_reenvio_perfil | bool
+                        or state_attr(entidad_clima, 'fan_mode')
+                          != ventilador_perfil
+                      }}
+                then:
+                  - action: climate.set_fan_mode
+                    alias: Aplicar ventilador del perfil
+                    continue_on_error: true
+                    target:
+                      entity_id: "{{ entidad_clima }}"
+                    data:
+                      fan_mode: "{{ ventilador_perfil }}"
+                  - delay: !input pausa_entre_ordenes
+
+      - alias: Aplicar la oscilación vertical seleccionada
+        choose:
+          - conditions:
+              - condition: template
+                value_template: >
+                  {{
+                    states(entidad_clima)
+                      not in ['off', 'unknown', 'unavailable']
+                    and oscilacion_vertical_perfil != '__no_change__'
+                    and oscilacion_vertical_perfil in
+                      (state_attr(entidad_clima, 'swing_modes') or [])
+                  }}
+            sequence:
+              - alias: Cambiar la oscilación vertical solamente si es necesario
+                if:
+                  - condition: template
+                    value_template: >
+                      {{
+                        forzar_reenvio_perfil | bool
+                        or state_attr(entidad_clima, 'swing_mode')
+                          != oscilacion_vertical_perfil
+                      }}
+                then:
+                  - action: climate.set_swing_mode
+                    alias: Aplicar oscilación vertical del perfil
+                    continue_on_error: true
+                    target:
+                      entity_id: "{{ entidad_clima }}"
+                    data:
+                      swing_mode: "{{ oscilacion_vertical_perfil }}"
+                  - delay: !input pausa_entre_ordenes
+
+      - alias: Aplicar la oscilación horizontal seleccionada
+        choose:
+          - conditions:
+              - condition: template
+                value_template: >
+                  {{
+                    states(entidad_clima)
+                      not in ['off', 'unknown', 'unavailable']
+                    and oscilacion_horizontal_perfil != '__no_change__'
+                    and oscilacion_horizontal_perfil in
+                      (state_attr(entidad_clima, 'swing_horizontal_modes') or [])
+                  }}
+            sequence:
+              - alias: Cambiar la oscilación horizontal solamente si es necesario
+                if:
+                  - condition: template
+                    value_template: >
+                      {{
+                        forzar_reenvio_perfil | bool
+                        or state_attr(entidad_clima, 'swing_horizontal_mode')
+                          != oscilacion_horizontal_perfil
+                      }}
+                then:
+                  - action: climate.set_swing_horizontal_mode
+                    alias: Aplicar oscilación horizontal del perfil
+                    continue_on_error: true
+                    target:
+                      entity_id: "{{ entidad_clima }}"
+                    data:
+                      swing_horizontal_mode: "{{ oscilacion_horizontal_perfil }}"
+                  - delay: !input pausa_entre_ordenes
+
+      - alias: Ejecutar las acciones adicionales configuradas
+        if:
+          - condition: template
+            value_template: >
+              {{
+                states(entidad_clima)
+                not in ['off', 'unknown', 'unavailable']
+                and trigger.id in ejecutar_acciones_adicionales_en
+              }}
+        then:
+          - alias: Ejecutar acciones adicionales sin cancelar la verificación
+            continue_on_error: true
+            sequence: !input acciones_adicionales
+
+      - alias: Esperar la confirmación de estado del equipo
+        delay: "00:00:05"
+
+      - alias: Comprobar el resultado completo del perfil
+        variables:
+          problemas_perfil: >
+            {% set ns = namespace(items=[]) %}
+            {% set estado = states(entidad_clima) %}
+            {% set hvac_disponibles =
+              state_attr(entidad_clima, 'hvac_modes') or [] %}
+            {% set fan_disponibles =
+              state_attr(entidad_clima, 'fan_modes') or [] %}
+            {% set verticales_disponibles =
+              state_attr(entidad_clima, 'swing_modes') or [] %}
+            {% set horizontales_disponibles =
+              state_attr(entidad_clima, 'swing_horizontal_modes') or [] %}
+
+            {% if estado in ['unknown', 'unavailable'] %}
+              {% set ns.items = ns.items +
+                ['unidad ' ~ estado ~ ' al verificar'] %}
+            {% elif estado == 'off' %}
+              {% set ns.items = ns.items +
+                ['unidad apagada antes de la verificación'] %}
+            {% else %}
+              {% if modo_hvac_forzado not in hvac_disponibles %}
+                {% set ns.items = ns.items +
+                  ['modo HVAC no soportado: ' ~ modo_hvac_forzado] %}
+              {% elif estado != modo_hvac_forzado %}
+                {% set ns.items = ns.items +
+                  ['modo esperado ' ~ modo_hvac_forzado ~ ', recibido ' ~ estado] %}
+              {% endif %}
+
+              {% set temperatura_actual =
+                state_attr(entidad_clima, 'temperature') %}
+              {% if temperatura_actual is none %}
+                {% set ns.items = ns.items +
+                  ['temperatura sin confirmación'] %}
+              {% elif ((temperatura_actual | float) -
+                        (temperatura_perfil | float)) | abs > 0.1 %}
+                {% set ns.items = ns.items +
+                  ['temperatura esperada ' ~ (temperatura_perfil | string) ~
+                   ', recibida ' ~ (temperatura_actual | string)] %}
+              {% endif %}
+
+              {% if ventilador_perfil != '__no_change__' %}
+                {% if ventilador_perfil not in fan_disponibles %}
+                  {% set ns.items = ns.items +
+                    ['ventilador no soportado: ' ~ ventilador_perfil] %}
+                {% elif state_attr(entidad_clima, 'fan_mode')
+                          != ventilador_perfil %}
+                  {% set ns.items = ns.items +
+                    ['ventilador esperado ' ~ ventilador_perfil ~
+                     ', recibido ' ~
+                     (state_attr(entidad_clima, 'fan_mode') | string)] %}
+                {% endif %}
+              {% endif %}
+
+              {% if oscilacion_vertical_perfil != '__no_change__' %}
+                {% if oscilacion_vertical_perfil
+                      not in verticales_disponibles %}
+                  {% set ns.items = ns.items +
+                    ['oscilación vertical no soportada: ' ~
+                     oscilacion_vertical_perfil] %}
+                {% elif state_attr(entidad_clima, 'swing_mode')
+                          != oscilacion_vertical_perfil %}
+                  {% set ns.items = ns.items +
+                    ['vertical esperada ' ~ oscilacion_vertical_perfil ~
+                     ', recibida ' ~
+                     (state_attr(entidad_clima, 'swing_mode') | string)] %}
+                {% endif %}
+              {% endif %}
+
+              {% if oscilacion_horizontal_perfil != '__no_change__' %}
+                {% if oscilacion_horizontal_perfil
+                      not in horizontales_disponibles %}
+                  {% set ns.items = ns.items +
+                    ['oscilación horizontal no soportada: ' ~
+                     oscilacion_horizontal_perfil] %}
+                {% elif state_attr(entidad_clima, 'swing_horizontal_mode')
+                          != oscilacion_horizontal_perfil %}
+                  {% set ns.items = ns.items +
+                    ['horizontal esperada ' ~ oscilacion_horizontal_perfil ~
+                     ', recibida ' ~
+                     (state_attr(entidad_clima,
+                                 'swing_horizontal_mode') | string)] %}
+                {% endif %}
+              {% endif %}
+            {% endif %}
+            {{ ns.items | join(' | ') }}
+
+      - alias: Registrar únicamente si el perfil terminó con problemas
+        if:
+          - condition: template
+            value_template: "{{ problemas_perfil | trim | length > 0 }}"
+        then:
+          - action: system_log.write
+            alias: Escribir resumen final de problemas
+            data:
+              level: error
+              logger: blueprints.evotech.climate_fixed_schedule
+              message: >
+                Perfil {{ trigger.id }} con problemas en {{ entidad_clima }}:
+                {{ problemas_perfil }}.
+
+# Cada instancia controla una sola entidad climate. El modo single impide que
+# dos perfiles de esa unidad se ejecuten al mismo tiempo. Otras instancias del
+# blueprint, creadas para otros aires, funcionan de manera independiente.
+mode: single
+max_exceeded: warning
