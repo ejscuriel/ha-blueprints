@@ -12,7 +12,7 @@
 # ║  · Al finalizar verifica el resultado y registra cualquier problema.       ║
 # ║                                                                            ║
 # ║  Autor       : Eduardo Sánchez Curiel — EVOTECH LTDA                       ║
-# ║  Versión     : 1.4.0                                                       ║
+# ║  Versión     : 1.4.1                                                       ║
 # ║  Fecha       : 2026-09-07                                                  ║
 # ║  Licencia    : MIT                                                         ║
 # ║  Requisitos  : Home Assistant 2026.1.0 o superior                         ║
@@ -56,11 +56,12 @@ blueprint:
     obligatorio que permite transmitir sus valores aunque ya coincidan; las
     opciones marcadas como `No modificar` nunca se envían.
 
-    Los valores precargados reproducen el perfil vigente de la unidad de
-    Eduardo. Los cinco horarios permanecen desactivados hasta que el usuario
-    habilite expresamente los que quiera utilizar.
+    El perfil inicial precargado reproduce los valores vigentes de la unidad de
+    Eduardo. Las horas propuestas son 23:00, 00:00, 01:00, 02:00 y 03:00. Los
+    cinco horarios permanecen desactivados hasta que el usuario habilite
+    expresamente los que quiera utilizar.
 
-    **Versión 1.4.0**
+    **Versión 1.4.1**
 
   domain: automation
   homeassistant:
@@ -120,44 +121,6 @@ blueprint:
             duration:
               enable_day: false
               enable_millisecond: false
-
-        acciones_adicionales:
-          name: Acciones adicionales
-          description: >
-            Opcional. Permite conservar acciones asociadas, por ejemplo encender
-            la luz del display del aire de Eduardo. Se ejecutan después de los
-            perfiles elegidos en el campo siguiente.
-          default: []
-          selector:
-            action:
-
-        ejecutar_acciones_adicionales_en:
-          name: Ejecutar las acciones adicionales en
-          description: >
-            Selecciona los eventos que también deben ejecutar las acciones
-            adicionales. Los valores precargados reproducen el uso actual del
-            display de Eduardo.
-          default:
-            - aire_encendido
-            - horario_1
-            - horario_2
-          selector:
-            select:
-              mode: list
-              multiple: true
-              options:
-                - label: Perfil inicial al encender
-                  value: aire_encendido
-                - label: Horario 1
-                  value: horario_1
-                - label: Horario 2
-                  value: horario_2
-                - label: Horario 3
-                  value: horario_3
-                - label: Horario 4
-                  value: horario_4
-                - label: Horario 5
-                  value: horario_5
 
     perfil_inicial:
       name: "🎯 Perfil obligatorio al encender"
@@ -282,7 +245,10 @@ blueprint:
       collapsed: true
       input:
         habilitar_horario_1:
-          name: Usar horario 1
+          name: Ejecutar el perfil horario 1
+          description: >
+            Activa el cambio automático a la hora indicada. La selección de
+            acciones adicionales no activa este horario.
           default: false
           selector:
             boolean:
@@ -294,7 +260,7 @@ blueprint:
             boolean:
         hora_horario_1:
           name: Hora 1
-          default: "22:00:00"
+          default: "23:00:00"
           selector:
             time:
         temperatura_horario_1:
@@ -325,7 +291,10 @@ blueprint:
       collapsed: true
       input:
         habilitar_horario_2:
-          name: Usar horario 2
+          name: Ejecutar el perfil horario 2
+          description: >
+            Activa el cambio automático a la hora indicada. La selección de
+            acciones adicionales no activa este horario.
           default: false
           selector:
             boolean:
@@ -363,7 +332,10 @@ blueprint:
       collapsed: true
       input:
         habilitar_horario_3:
-          name: Usar horario 3
+          name: Ejecutar el perfil horario 3
+          description: >
+            Activa el cambio automático a la hora indicada. La selección de
+            acciones adicionales no activa este horario.
           default: false
           selector:
             boolean:
@@ -401,7 +373,10 @@ blueprint:
       collapsed: true
       input:
         habilitar_horario_4:
-          name: Usar horario 4
+          name: Ejecutar el perfil horario 4
+          description: >
+            Activa el cambio automático a la hora indicada. La selección de
+            acciones adicionales no activa este horario.
           default: false
           selector:
             boolean:
@@ -413,7 +388,7 @@ blueprint:
             boolean:
         hora_horario_4:
           name: Hora 4
-          default: "03:00:00"
+          default: "02:00:00"
           selector:
             time:
         temperatura_horario_4:
@@ -439,7 +414,10 @@ blueprint:
       collapsed: true
       input:
         habilitar_horario_5:
-          name: Usar horario 5
+          name: Ejecutar el perfil horario 5
+          description: >
+            Activa el cambio automático a la hora indicada. La selección de
+            acciones adicionales no activa este horario.
           default: false
           selector:
             boolean:
@@ -451,7 +429,7 @@ blueprint:
             boolean:
         hora_horario_5:
           name: Hora 5
-          default: "02:00:00"
+          default: "03:00:00"
           selector:
             time:
         temperatura_horario_5:
@@ -470,6 +448,50 @@ blueprint:
           name: Oscilación horizontal 5
           default: MiddleRight
           selector: *selector_horizontal
+
+    acciones_opcionales:
+      name: "🧩 Acciones opcionales (avanzado)"
+      icon: mdi:playlist-plus
+      collapsed: true
+      input:
+        acciones_adicionales:
+          name: Acciones adicionales
+          description: >
+            Opcional. Permite conservar acciones asociadas, por ejemplo encender
+            la luz del display del aire de Eduardo. Se ejecutan después de los
+            perfiles elegidos en el campo siguiente.
+          default: []
+          selector:
+            action:
+
+        ejecutar_acciones_adicionales_en:
+          name: Cuándo ejecutar las acciones adicionales (no activa horarios)
+          description: >
+            Este campo solo decide después de qué perfiles se ejecuta el bloque
+            anterior. Marcar un horario aquí NO lo activa. Para habilitar su
+            cambio automático, abre la sección de ese horario y activa
+            "Ejecutar el perfil horario".
+          default:
+            - aire_encendido
+            - horario_1
+            - horario_2
+          selector:
+            select:
+              mode: list
+              multiple: true
+              options:
+                - label: Después del perfil inicial
+                  value: aire_encendido
+                - label: Después del perfil horario 1 (si está habilitado)
+                  value: horario_1
+                - label: Después del perfil horario 2 (si está habilitado)
+                  value: horario_2
+                - label: Después del perfil horario 3 (si está habilitado)
+                  value: horario_3
+                - label: Después del perfil horario 4 (si está habilitado)
+                  value: horario_4
+                - label: Después del perfil horario 5 (si está habilitado)
+                  value: horario_5
 
 trigger_variables:
   _entidad_clima_disparador: !input entidad_clima

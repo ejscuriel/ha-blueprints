@@ -190,19 +190,21 @@ oscilación horizontal. La opción **No modificar** permite que un horario cambi
 solo los valores necesarios. Para usar uno, dos o tres horarios, se dejan los
 restantes desactivados.
 
-Los valores precargados reproducen la configuración vigente de la unidad de
-Eduardo: perfil inicial `cool / 21 / low / Bottom / MiddleRight` y cuatro
-propuestas horarias a las 22:00, 00:00, 01:00 y 03:00. Por seguridad, todos los
-horarios vienen desactivados; cada usuario habilita únicamente los que necesite.
+El perfil inicial precargado reproduce la configuración vigente de la unidad de
+Eduardo: `cool / 21 / low / Bottom / MiddleRight`. Las cinco horas propuestas
+son 23:00, 00:00, 01:00, 02:00 y 03:00. Por seguridad, todos los horarios vienen
+desactivados; cada usuario habilita únicamente los que necesite.
 
 Cada perfil incluye **Reenviar aunque ya coincida**, desactivado de forma
 predeterminada. Así se evitan órdenes y pitidos innecesarios. Al activarlo, el
 modo, la temperatura y cada opción distinta de **No modificar** se consideran
 obligatorios y se transmiten incluso si el estado publicado ya es igual.
 
-El campo opcional **Acciones adicionales** permite conservar funciones asociadas
-que no son propias del clima. Otro selector indica exactamente en cuáles eventos
-se ejecutan. En la unidad de Eduardo se usa para encender
+La sección avanzada **Acciones opcionales** permite conservar funciones que no
+son propias del clima. Su selector solo decide después de cuáles perfiles se
+ejecutan esas acciones: marcar allí un horario **no lo activa**. Cada horario se
+habilita exclusivamente con **Ejecutar el perfil horario N** dentro de su propia
+sección. En la unidad de Eduardo se usa para encender
 `switch.aire_edu_display_light` solo después del perfil inicial, 22:00 y 00:00.
 
 Al finalizar, el blueprint espera cinco segundos y compara el modo HVAC, la
@@ -302,7 +304,7 @@ automatizaciones apunten a los blueprints de una pareja.
 | Interruptor ↔ Luz — una pareja | 2.0.0 | 2026-09-02 | Recomendado |
 | Puerta → Luz / Interruptor — una pareja | 3.0.0 | 2026-09-02 | Recomendado |
 | Presencia → Luz / Interruptor | 0.2.1 BETA | 2026-09-02 | Beta controlada |
-| Aire acondicionado → Perfil fijo | 1.4.0 | 2026-09-07 | Nueva versión para pruebas |
+| Aire acondicionado → Perfil fijo | 1.4.1 | 2026-09-07 | Nueva versión para pruebas |
 | Switch ↔ Light — multipareja | 1.2.0 | 2025-05-20 | Heredado |
 | Door → Light — multipareja | 2.1.0 | 2025-05-20 | Heredado |
 
