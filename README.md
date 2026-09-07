@@ -167,6 +167,10 @@ encendida durante un minuto en **cualquier modo activo**, la unidad recibe el
 perfil inicial. Esto incluye encendidos en `dry`, `auto`, `fan_only`, `cool`,
 `heat` y cualquier otro modo publicado por la integración.
 
+El minuto pendiente pertenece al disparador de Home Assistant. Si el servidor
+se reinicia o se recargan las automatizaciones durante ese minuto, el conteo no
+se conserva; el siguiente encendido normal vuelve a iniciar el proceso completo.
+
 **Comportamiento:**
 
 | Evento | Resultado |
@@ -265,8 +269,8 @@ y recarga las automatizaciones que lo utilizan.
 
 Los cuatro blueprints recomendados usan las **trazas nativas de cada
 automatización**. En Home Assistant abre la automatización concreta y selecciona
-**Trazas**. Al existir una instancia por pareja, la traza muestra directamente
-qué habitación y qué temporizador produjeron el resultado.
+**Trazas**. Al existir una instancia por pareja, zona o unidad, la traza muestra
+directamente qué habitación y qué temporizador produjeron el resultado.
 
 Los estados `unknown` y `unavailable` no se convierten en órdenes de encendido o
 apagado. Esto evita sincronizaciones no deseadas después de una desconexión o
