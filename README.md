@@ -280,6 +280,21 @@ del reinicio de Home Assistant.
 
 ---
 
+## 🛠 Herramientas de mantenimiento
+
+### Perfil mínimo de entidades Dahua
+
+[`tools/Set-DahuaEntityProfile.ps1`](tools/Set-DahuaEntityProfile.ps1) audita o
+aplica una lista blanca después de agregar una cámara Dahua. Conserva solamente
+`Main`, `Sub`, `Motion Alarm`, `Smart Motion Human`, `Motion Detection` y
+`Smart Motion Detection` por dispositivo; el resto se deshabilita de forma
+reversible en el registro de entidades.
+
+La ejecución sin `-Apply` es una simulación. Las instrucciones completas y las
+precauciones para el token están en [`tools/README.md`](tools/README.md).
+
+---
+
 ## 🗃 Blueprints multipareja heredados
 
 Las versiones anteriores se conservan para consulta y reversión. Siguen siendo
