@@ -26,7 +26,7 @@ Desarrolladas por **Eduardo Sánchez Curiel — EVOTECH LTDA**
 | 🧩 Custom Components | [Abrir catálogo](custom_components/README.md) | Una carpeta por integración, con código y documentación propia |
 
 Integración disponible actualmente:
-[**Dahua Entity Profile 1.1.0**](custom_components/dahua_entity_profile/README.md).
+[**Dahua Entity Profile 1.1.0**](https://github.com/ejscuriel/ha-dahua-entity-profile).
 
 ## Estructura
 

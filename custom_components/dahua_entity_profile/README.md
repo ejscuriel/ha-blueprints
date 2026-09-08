@@ -1,15 +1,20 @@
 # Dahua Entity Profile
 
+> **Repositorio trasladado:** las próximas versiones se publican en
+> [`ejscuriel/ha-dahua-entity-profile`](https://github.com/ejscuriel/ha-dahua-entity-profile).
+> Esta copia se conserva temporalmente para mantener compatibles los enlaces
+> anteriores.
+
 Servicio local para aplicar manualmente una lista blanca al registro de
 entidades de la integración Dahua. No elimina entidades ni cambia la
 configuración interna de las cámaras.
 
 ## Instalación nueva mediante HACS
 
-[![Abrir el repositorio en HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ejscuriel&repository=ha-blueprints&category=integration)
+[![Abrir el repositorio en HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ejscuriel&repository=ha-dahua-entity-profile&category=integration)
 
 1. Usar el botón anterior o, en HACS, agregar
-   `https://github.com/ejscuriel/ha-blueprints` como repositorio personalizado
+   `https://github.com/ejscuriel/ha-dahua-entity-profile` como repositorio personalizado
    de tipo **Integración**.
 2. Instalar **Dahua Entity Profile** y reiniciar Home Assistant.
 3. Abrir **Configuración → Dispositivos y servicios → Añadir integración**.

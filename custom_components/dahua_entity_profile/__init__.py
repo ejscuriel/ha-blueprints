@@ -33,6 +33,8 @@ DEFAULT_KEEP_NAMES = (
     "Reboot",
 )
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
 NOTIFICATION_ID = "dahua_entity_profile_last_run"
 PLATFORMS = (Platform.BUTTON,)
 _LOGGER = logging.getLogger(__name__)

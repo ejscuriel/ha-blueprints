@@ -3,9 +3,10 @@
   "name": "Dahua Entity Profile",
   "codeowners": ["@ejscuriel"],
   "config_flow": true,
-  "documentation": "https://github.com/ejscuriel/ha-blueprints/tree/main/custom_components/dahua_entity_profile",
-  "issue_tracker": "https://github.com/ejscuriel/ha-blueprints/issues",
+  "documentation": "https://github.com/ejscuriel/ha-dahua-entity-profile",
   "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/ejscuriel/ha-dahua-entity-profile/issues",
   "single_config_entry": true,
   "version": "1.1.0"
 }

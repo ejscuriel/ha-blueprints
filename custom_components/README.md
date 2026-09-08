@@ -6,9 +6,13 @@ traducciones, recursos visuales y documentación individual.
 
 | Integración | Versión | Propósito | Documentación |
 |---|---:|---|---|
-| Dahua Entity Profile | 1.1.0 | Conserva únicamente los tipos de entidad Dahua seleccionados | [Abrir](dahua_entity_profile/README.md) |
+| Dahua Entity Profile | 1.1.0 | Conserva únicamente los tipos de entidad Dahua seleccionados | [Repositorio instalable](https://github.com/ejscuriel/ha-dahua-entity-profile) |
 
-[![Instalar Dahua Entity Profile con HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ejscuriel&repository=ha-blueprints&category=integration)
+[![Instalar Dahua Entity Profile con HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ejscuriel&repository=ha-dahua-entity-profile&category=integration)
+
+La carpeta local `dahua_entity_profile/` se conserva temporalmente como copia de
+compatibilidad. El origen canónico y las próximas versiones están en el
+[repositorio independiente](https://github.com/ejscuriel/ha-dahua-entity-profile).
 
 ## Regla para futuros componentes
 
