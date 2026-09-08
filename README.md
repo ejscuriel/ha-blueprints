@@ -293,6 +293,14 @@ reversible en el registro de entidades.
 La ejecución sin `-Apply` es una simulación. Las instrucciones completas y las
 precauciones para el token están en [`tools/README.md`](tools/README.md).
 
+Para ejecutarlo completamente dentro de Home Assistant también se incluye una
+integración instalable mediante HACS, con configuración desde la interfaz y un
+botón manual. La integración ofrece además el servicio
+[`dahua_entity_profile.apply`](custom_components/dahua_entity_profile/README.md)
+y una [automatización manual opcional](examples/automation_dahua_entity_profile.yaml).
+El botón o la automatización dejan un resumen final en el log y en una
+notificación.
+
 ---
 
 ## 🗃 Blueprints multipareja heredados

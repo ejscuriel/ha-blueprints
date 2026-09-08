@@ -1,0 +1,45 @@
+{
+  "title": "Perfil de entidades Dahua",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurar el perfil de entidades Dahua",
+        "description": "Crea un botón manual que conserva habilitadas solamente las entidades Dahua aprobadas."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "El perfil de entidades Dahua ya está configurado."
+    }
+  },
+  "entity": {
+    "button": {
+      "apply_profile": {
+        "name": "Aplicar perfil mínimo de entidades"
+      }
+    }
+  },
+  "services": {
+    "apply": {
+      "name": "Aplicar perfil mínimo de entidades Dahua",
+      "description": "Conserva habilitadas las entidades Dahua seleccionadas y deshabilita las demás entidades de la misma plataforma.",
+      "fields": {
+        "platform": {
+          "name": "Plataforma",
+          "description": "Plataforma del registro de entidades que se procesará."
+        },
+        "keep_names": {
+          "name": "Nombres que se conservarán",
+          "description": "Nombres originales de la integración que deben permanecer habilitados."
+        },
+        "reload_integrations": {
+          "name": "Recargar integraciones",
+          "description": "Recarga las entradas de configuración afectadas después de cambiar el registro."
+        },
+        "notify": {
+          "name": "Crear notificación",
+          "description": "Crea o reemplaza una notificación persistente con el resultado final."
+        }
+      }
+    }
+  }
+}

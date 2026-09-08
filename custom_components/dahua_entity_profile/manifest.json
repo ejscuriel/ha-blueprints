@@ -1,0 +1,10 @@
+{
+  "domain": "dahua_entity_profile",
+  "name": "Dahua Entity Profile",
+  "codeowners": ["@ejscuriel"],
+  "config_flow": true,
+  "documentation": "https://github.com/ejscuriel/ha-blueprints/tree/main/custom_components/dahua_entity_profile",
+  "integration_type": "service",
+  "single_config_entry": true,
+  "version": "1.0.0"
+}

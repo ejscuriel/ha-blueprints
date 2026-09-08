@@ -1,0 +1,45 @@
+{
+  "title": "Dahua Entity Profile",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Dahua Entity Profile",
+        "description": "Creates a manual button that keeps only the approved Dahua entities enabled."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Dahua Entity Profile is already configured."
+    }
+  },
+  "entity": {
+    "button": {
+      "apply_profile": {
+        "name": "Apply minimal entity profile"
+      }
+    }
+  },
+  "services": {
+    "apply": {
+      "name": "Apply minimal Dahua entity profile",
+      "description": "Keeps the selected Dahua entities enabled and disables all other entities from the same platform.",
+      "fields": {
+        "platform": {
+          "name": "Platform",
+          "description": "Entity registry platform to process."
+        },
+        "keep_names": {
+          "name": "Names to keep",
+          "description": "Integration-provided entity names that must remain enabled."
+        },
+        "reload_integrations": {
+          "name": "Reload integrations",
+          "description": "Reload affected configuration entries after changing the registry."
+        },
+        "notify": {
+          "name": "Create notification",
+          "description": "Create or replace a persistent notification with the final result."
+        }
+      }
+    }
+  }
+}
