@@ -30,6 +30,7 @@ DEFAULT_KEEP_NAMES = (
     "Smart Motion Human",
     "Motion Detection",
     "Smart Motion Detection",
+    "Reboot",
 )
 
 NOTIFICATION_ID = "dahua_entity_profile_last_run"
@@ -39,13 +40,33 @@ _LOGGER = logging.getLogger(__name__)
 SERVICE_APPLY_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_PLATFORM, default=DEFAULT_PLATFORM): cv.string,
-        vol.Optional(ATTR_KEEP_NAMES, default=list(DEFAULT_KEEP_NAMES)): vol.All(
+        vol.Optional(ATTR_KEEP_NAMES): vol.All(
             cv.ensure_list, [cv.string]
         ),
         vol.Optional(ATTR_RELOAD_INTEGRATIONS, default=True): cv.boolean,
         vol.Optional(ATTR_NOTIFY, default=True): cv.boolean,
     }
 )
+
+
+def configured_keep_names(entry: ConfigEntry) -> list[str]:
+    """Return the profile saved in the config entry, or the defaults."""
+    configured = entry.options.get(
+        ATTR_KEEP_NAMES,
+        entry.data.get(ATTR_KEEP_NAMES, DEFAULT_KEEP_NAMES),
+    )
+    return [str(name) for name in configured]
+
+
+def _service_keep_names(hass: HomeAssistant, call: ServiceCall) -> list[str]:
+    """Resolve explicit service data before falling back to integration options."""
+    if ATTR_KEEP_NAMES in call.data:
+        return call.data[ATTR_KEEP_NAMES]
+
+    entries = hass.config_entries.async_entries(DOMAIN)
+    if entries:
+        return configured_keep_names(entries[0])
+    return list(DEFAULT_KEEP_NAMES)
 
 
 def _is_kept_entity(entry: er.RegistryEntry, keep_names: list[str]) -> bool:
@@ -206,7 +227,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         await async_apply_profile(
             hass,
             platform=call.data[ATTR_PLATFORM],
-            keep_names=call.data[ATTR_KEEP_NAMES],
+            keep_names=_service_keep_names(hass, call),
             reload_integrations=call.data[ATTR_RELOAD_INTEGRATIONS],
             notify=call.data[ATTR_NOTIFY],
         )

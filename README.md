@@ -287,7 +287,7 @@ del reinicio de Home Assistant.
 [`tools/Set-DahuaEntityProfile.ps1`](tools/Set-DahuaEntityProfile.ps1) audita o
 aplica una lista blanca después de agregar una cámara Dahua. Conserva solamente
 `Main`, `Sub`, `Motion Alarm`, `Smart Motion Human`, `Motion Detection` y
-`Smart Motion Detection` por dispositivo; el resto se deshabilita de forma
+`Smart Motion Detection` y `Reboot` por dispositivo; el resto se deshabilita de forma
 reversible en el registro de entidades.
 
 La ejecución sin `-Apply` es una simulación. Las instrucciones completas y las
@@ -295,11 +295,14 @@ precauciones para el token están en [`tools/README.md`](tools/README.md).
 
 Para ejecutarlo completamente dentro de Home Assistant también se incluye una
 integración instalable mediante HACS, con configuración desde la interfaz y un
-botón manual. La integración ofrece además el servicio
+botón manual. La lista de tipos que permanecerán habilitados se puede editar
+desde **Configurar** en la integración. La integración ofrece además el servicio
 [`dahua_entity_profile.apply`](custom_components/dahua_entity_profile/README.md)
 y una [automatización manual opcional](examples/automation_dahua_entity_profile.yaml).
 El botón o la automatización dejan un resumen final en el log y en una
 notificación.
+
+[![Abrir Dahua Entity Profile en HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ejscuriel&repository=ha-blueprints&category=integration)
 
 ---
 

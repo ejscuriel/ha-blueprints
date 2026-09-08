@@ -4,11 +4,37 @@
     "step": {
       "user": {
         "title": "Configurar el perfil de entidades Dahua",
-        "description": "Crea un botón manual que conserva habilitadas solamente las entidades Dahua aprobadas."
+        "description": "Selecciona los tipos de entidad Dahua que deben permanecer habilitados. La integración crea un botón manual para aplicar este perfil.",
+        "data": {
+          "keep_names": "Tipos de entidad que se conservarán"
+        },
+        "data_description": {
+          "keep_names": "La lista se construye con las entidades Dahua registradas actualmente en Home Assistant."
+        }
       }
+    },
+    "error": {
+      "empty_selection": "Selecciona al menos un tipo de entidad."
     },
     "abort": {
       "single_instance_allowed": "El perfil de entidades Dahua ya está configurado."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Entidades que se conservarán",
+        "description": "Selecciona los tipos de entidad que permanecerán habilitados la próxima vez que se aplique el perfil.",
+        "data": {
+          "keep_names": "Tipos de entidad que se conservarán"
+        },
+        "data_description": {
+          "keep_names": "Los tipos nuevos detectados en las cámaras Dahua instaladas se añaden automáticamente a esta lista."
+        }
+      }
+    },
+    "error": {
+      "empty_selection": "Selecciona al menos un tipo de entidad."
     }
   },
   "entity": {
@@ -29,7 +55,7 @@
         },
         "keep_names": {
           "name": "Nombres que se conservarán",
-          "description": "Nombres originales de la integración que deben permanecer habilitados."
+          "description": "Valor opcional. Si se omite, se usa la lista guardada en las opciones de la integración."
         },
         "reload_integrations": {
           "name": "Recargar integraciones",

@@ -8,13 +8,6 @@ apply:
         text:
     keep_names:
       required: false
-      default:
-        - Main
-        - Sub
-        - Motion Alarm
-        - Smart Motion Human
-        - Motion Detection
-        - Smart Motion Detection
       selector:
         object:
     reload_integrations:

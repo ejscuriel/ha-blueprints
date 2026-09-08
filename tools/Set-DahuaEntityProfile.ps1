@@ -17,6 +17,7 @@ param(
         'Main',
         'Motion Alarm',
         'Motion Detection',
+        'Reboot',
         'Smart Motion Detection',
         'Smart Motion Human',
         'Sub'

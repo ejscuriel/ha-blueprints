@@ -4,11 +4,37 @@
     "step": {
       "user": {
         "title": "Set up Dahua Entity Profile",
-        "description": "Creates a manual button that keeps only the approved Dahua entities enabled."
+        "description": "Choose the Dahua entity types that should remain enabled. The integration creates a manual button to apply this profile.",
+        "data": {
+          "keep_names": "Entity types to keep"
+        },
+        "data_description": {
+          "keep_names": "The list is built from the Dahua entities currently registered in Home Assistant."
+        }
       }
+    },
+    "error": {
+      "empty_selection": "Select at least one entity type."
     },
     "abort": {
       "single_instance_allowed": "Dahua Entity Profile is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Entities to keep",
+        "description": "Select the entity types that will remain enabled the next time the profile is applied.",
+        "data": {
+          "keep_names": "Entity types to keep"
+        },
+        "data_description": {
+          "keep_names": "New types detected from the installed Dahua cameras are added to this list automatically."
+        }
+      }
+    },
+    "error": {
+      "empty_selection": "Select at least one entity type."
     }
   },
   "entity": {
@@ -29,7 +55,7 @@
         },
         "keep_names": {
           "name": "Names to keep",
-          "description": "Integration-provided entity names that must remain enabled."
+          "description": "Optional override. If omitted, the list saved in the integration options is used."
         },
         "reload_integrations": {
           "name": "Reload integrations",

@@ -13,6 +13,7 @@ Por cada cámara se conservan:
 - `Motion Alarm`
 - `Smart Motion Human`
 - `Motion Detection`
+- `Reboot`
 - `Smart Motion Detection`
 
 Todas las demás se marcan como deshabilitadas por el usuario. La utilidad no

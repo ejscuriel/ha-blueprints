@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import DEFAULT_KEEP_NAMES, DEFAULT_PLATFORM, DOMAIN, async_apply_profile
+from . import DEFAULT_PLATFORM, DOMAIN, async_apply_profile, configured_keep_names
 
 
 async def async_setup_entry(
@@ -30,6 +30,7 @@ class DahuaApplyProfileButton(ButtonEntity):
 
     def __init__(self, entry: ConfigEntry) -> None:
         """Initialize the button."""
+        self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_apply_profile"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
@@ -43,7 +44,7 @@ class DahuaApplyProfileButton(ButtonEntity):
         await async_apply_profile(
             self.hass,
             platform=DEFAULT_PLATFORM,
-            keep_names=DEFAULT_KEEP_NAMES,
+            keep_names=configured_keep_names(self._entry),
             reload_integrations=True,
             notify=True,
         )
