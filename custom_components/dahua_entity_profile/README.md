@@ -48,3 +48,5 @@ la integración desde la interfaz.
 - Usa un bloqueo interno para impedir dos ejecuciones simultáneas.
 
 La operación es idempotente y puede repetirse después de agregar cada cámara.
+
+[Volver al catálogo de Custom Components](../README.md)
