@@ -11,9 +11,9 @@ automatización independiente por habitación, pareja, zona o unidad.
 
 | Blueprint | Versión | Documentación | Estado |
 |---|---:|---|---|
-| Interruptor ↔ Luz — una pareja | 2.0.0 | [Abrir](automation/switch_light_single/README.md) | Recomendado |
-| Puerta → Luz / Interruptor — una pareja | 3.0.0 | [Abrir](automation/door_light_single/README.md) | Recomendado |
-| Presencia + horario + clima | 0.2.1 BETA | [Abrir](automation/presence_climate/README.md) | Beta controlada |
+| Interruptor ↔ Luz — una pareja | 2.1.0 | [Abrir](automation/switch_light_single/README.md) | Recomendado |
+| Puerta → Luz / Interruptor — una pareja | 3.1.0 | [Abrir](automation/door_light_single/README.md) | Recomendado |
+| Presencia + horario + clima | 0.3.0 BETA | [Abrir](automation/presence_climate/README.md) | Beta controlada |
 | Aire acondicionado — perfil y horarios | 1.4.1 | [Abrir](automation/climate_fixed_schedule/README.md) | Recomendado |
 
 ## Heredados
@@ -28,3 +28,9 @@ instalación nueva se recomiendan las variantes de una sola pareja, porque sus
 trazas, temporizadores y reinicios son independientes.
 
 [Volver a la portada](../README.md)
+
+## Actualización 2026-10-10
+
+Acciones adicionales opcionales en los tres blueprints de puerta, presencia e
+interruptor/luz, con check desactivado por defecto y conservación de las
+configuraciones existentes. [Guía y notas de compatibilidad](../docs/acciones_opcionales.md).

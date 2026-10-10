@@ -19,9 +19,9 @@ Desarrolladas por **Eduardo Sánchez Curiel — EVOTECH LTDA**.
 
 | Blueprint recomendado | Versión | Documentación |
 |---|---:|---|
-| Interruptor ↔ Luz — una pareja | 2.0.0 | [Abrir](blueprints/automation/switch_light_single/README.md) |
-| Puerta → Luz / Interruptor — una pareja | 3.0.0 | [Abrir](blueprints/automation/door_light_single/README.md) |
-| Presencia + horario + clima | 0.2.1 BETA | [Abrir](blueprints/automation/presence_climate/README.md) |
+| Interruptor ↔ Luz — una pareja | 2.1.0 | [Abrir](blueprints/automation/switch_light_single/README.md) |
+| Puerta → Luz / Interruptor — una pareja | 3.1.0 | [Abrir](blueprints/automation/door_light_single/README.md) |
+| Presencia + horario + clima | 0.3.0 BETA | [Abrir](blueprints/automation/presence_climate/README.md) |
 | Aire acondicionado — perfil y horarios | 1.4.1 | [Abrir](blueprints/automation/climate_fixed_schedule/README.md) |
 
 ## Estructura
@@ -52,3 +52,9 @@ El código de las integraciones personalizadas no se duplica en este repositorio
 MIT License — Copyright (c) 2025–2026 EVOTECH LTDA — Eduardo Sánchez Curiel.
 
 Se permite el uso, copia y modificación libre con crédito al autor original.
+
+## Actualización 2026-10-10
+
+Acciones adicionales opcionales en los tres blueprints de puerta, presencia e
+interruptor/luz, con check desactivado por defecto y conservación de las
+configuraciones existentes. [Guía y notas de compatibilidad](docs/acciones_opcionales.md).

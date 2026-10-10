@@ -18,8 +18,8 @@
 # ║  Web         : www.evotechltda.com                                         ║
 # ║  Contacto    : admin@evotechltda.com                                       ║
 # ║                                                                            ║
-# ║  Versión     : 0.2.1 BETA                                                  ║
-# ║  Fecha       : 2026-09-02                                                  ║
+# ║  Versión     : 0.3.0 BETA                                                  ║
+# ║  Fecha       : 2026-10-10                                                  ║
 # ║  Licencia    : MIT — libre uso, copia y modificación con crédito al autor ║
 # ║  Requisitos  : Home Assistant 2026.1.0 o superior                         ║
 # ║                                                                            ║
@@ -72,7 +72,10 @@ blueprint:
     el clima adverso puede habilitar el tramo diurno que normalmente no está
     cubierto.
 
-    **Versión 0.2.1 BETA — probar primero en una sola zona.**
+    **Versión 0.3.0 BETA — probar primero en una sola zona.**
+
+    **Acciones opcionales:** sección avanzada con check desactivado por defecto.
+    Las automatizaciones existentes mantienen sus parámetros y lógica de control.
 
     www.evotechltda.com · admin@evotechltda.com
 
@@ -279,6 +282,55 @@ blueprint:
           selector:
             time:
 
+
+    acciones_opcionales:
+      name: "🧩 Acciones opcionales (avanzado)"
+      icon: mdi:playlist-plus
+      collapsed: true
+      description: >
+        Extensión voluntaria. Desactivada conserva el funcionamiento original.
+        Configurar acciones o eventos no activa el check.
+      input:
+        habilitar_acciones_adicionales:
+          name: Ejecutar acciones adicionales
+          description: >
+            Activa únicamente el bloque adicional. Puedes desmarcarlo sin borrar
+            las acciones guardadas. Desactivado por defecto.
+          default: false
+          selector:
+            boolean:
+
+        acciones_adicionales:
+          name: Acciones adicionales
+          description: >
+            Se ejecutan al cambiar realmente el dispositivo al estado elegido,
+            incluido el accionamiento manual. No esperan al final del temporizador.
+            Para secuencias largas, llama a un script mediante script.turn_on.
+          default: []
+          selector:
+            action:
+
+        ejecutar_acciones_adicionales_en:
+          name: Cuándo ejecutar las acciones adicionales
+          description: >
+            Puedes elegir encendido, apagado o ambos. Una selección vacía no
+            ejecuta acciones. Este campo no activa el check general.
+          default:
+            - dispositivo_encendido
+          selector:
+            select:
+              mode: list
+              multiple: true
+              options:
+                - label: Al encender el dispositivo
+                  value: dispositivo_encendido
+                - label: Al apagar el dispositivo
+                  value: dispositivo_apagado
+
+variables:
+  habilitar_acciones_adicionales: !input habilitar_acciones_adicionales
+  ejecutar_acciones_adicionales_en: !input ejecutar_acciones_adicionales_en
+
 # ==============================================================
 # DISPARADORES
 # ==============================================================
@@ -298,229 +350,265 @@ triggers:
     to: "on"
     id: dispositivo_encendido
 
+  # Solo se registra al habilitar la extensión; OFF no inicia otro ciclo.
+  - trigger: state
+    alias: Dispositivo apagado para acciones opcionales
+    entity_id: !input dispositivo_controlado
+    from: "on"
+    to: "off"
+    enabled: !input habilitar_acciones_adicionales
+    id: dispositivo_apagado
+
 conditions: []
 
 # ==============================================================
 # ACCIONES
 # ==============================================================
+
 actions:
-  - alias: Ejecutar la rama correspondiente al evento recibido
-    choose:
-      # ----------------------------------------------------------
-      # RAMA 1 — NUEVA PRESENCIA
-      # ----------------------------------------------------------
-      - conditions:
-          - condition: trigger
-            id: presencia_detectada
-
-          # Los días seleccionados aplican a ambos horarios.
-          - condition: time
-            weekday: !input dias_permitidos
-
-          # Autorizar si estamos en el horario normal, o si el clima
-          # coincide con los estados elegidos y estamos en su horario.
-          - condition: or
-            conditions:
-              - condition: time
-                after: !input hora_inicio_normal
-                before: !input hora_fin_normal
-
-              - condition: and
-                conditions:
-                  - condition: state
-                    entity_id: !input entidad_clima
-                    state: !input estados_climaticos
-
-                  - condition: time
-                    after: !input hora_inicio_clima
-                    before: !input hora_fin_clima
-
-        sequence:
-          # Esta rama termina inmediatamente después de solicitar ON.
-          # El cambio a ON dispara la segunda rama en una ejecución paralela.
-          - alias: Solicitar encendido automático
-            action: homeassistant.turn_on
-            target:
-              entity_id: !input dispositivo_controlado
-
-      # ----------------------------------------------------------
-      # RAMA 2 — DISPOSITIVO ENCENDIDO
-      # ----------------------------------------------------------
-      - conditions:
-          - condition: trigger
-            id: dispositivo_encendido
-
-        sequence:
-          # El límite absoluto se calcula desde el cambio real a ON. Así, el
-          # tiempo consumido por la validación también cuenta dentro del máximo.
-          - alias: Cargar opciones de duración
-            variables:
-              maximo_habilitado: !input habilitar_tiempo_maximo
-              duracion_maxima: !input tiempo_maximo
-              duracion_validacion: !input tiempo_validacion
-
-          - alias: Calcular el límite absoluto desde el encendido real
-            variables:
-              instante_limite: >
-                {% set d = duracion_maxima %}
-                {% set segundos =
-                  (d.days | default(0) | int * 86400) +
-                  (d.hours | default(0) | int * 3600) +
-                  (d.minutes | default(0) | int * 60) +
-                  (d.seconds | default(0) | int) %}
-                {{ as_timestamp(trigger.to_state.last_changed) + segundos }}
-
-          # ======================================================
-          # A. VALIDACIÓN INICIAL
-          # ======================================================
-          # Si el encendido ocurrió sin presencia, esperar el tiempo
-          # configurado. Esto cubre encendidos físicos o externos.
-          - alias: Validar un encendido iniciado sin presencia
-            if:
-              - condition: not
-                conditions:
-                  - condition: state
-                    entity_id: !input sensor_presencia
-                    state: "on"
-
-            then:
-              - alias: Esperar presencia, apagado o el primer límite aplicable
-                wait_for_trigger:
-                  - trigger: state
-                    entity_id: !input sensor_presencia
-                    to: "on"
-                    id: presencia_durante_validacion
-
-                  - trigger: state
-                    entity_id: !input dispositivo_controlado
-                    to: "off"
-                    id: apagado_fisico_validacion
-
-                # Si el máximo está habilitado, vence el plazo más corto:
-                # validación configurada o tiempo restante del ciclo.
-                timeout: >
-                  {% set d = duracion_validacion %}
-                  {% set validacion =
-                    (d.days | default(0) | int * 86400) +
-                    (d.hours | default(0) | int * 3600) +
-                    (d.minutes | default(0) | int * 60) +
-                    (d.seconds | default(0) | int) %}
-                  {% if maximo_habilitado | bool %}
-                    {% set restante =
-                      [instante_limite | float(0) - as_timestamp(now()), 0] | max %}
-                    {{ [validacion, restante] | min | int(0) }}
-                  {% else %}
-                    {{ validacion }}
-                  {% endif %}
-                continue_on_timeout: true
-
-              # Si el usuario apagó físicamente, finalizar este ciclo.
-              # Se usa wait.trigger.id para que un reencendido rápido no
-              # sea apagado por esta ejecución anterior.
-              - alias: Finalizar si el dispositivo fue apagado externamente
-                if:
-                  - condition: template
-                    value_template: >
-                      {{ wait.trigger is not none and
-                         wait.trigger.id == 'apagado_fisico_validacion' }}
-                then:
-                  - stop: Apagado físico durante la validación inicial
-
-          # Si el dispositivo ya no está encendido, no continuar.
-          - condition: state
-            entity_id: !input dispositivo_controlado
-            state: "on"
-
-          # ======================================================
-          # B. CICLO CON PRESENCIA
-          # ======================================================
-          - alias: Administrar el ciclo según exista presencia
-            if:
-              - condition: state
-                entity_id: !input sensor_presencia
-                state: "on"
-
-            then:
-              - alias: Esperar con límite máximo o de forma indefinida
+  # La ruta predeterminada conserva la secuencia original completa.
+  # Solo un evento adicional habilitado abre las dos ramas: así una espera
+  # del usuario no retrasa validación, ausencia ni apagado por tiempo máximo.
+  - alias: Mantener el control original y habilitar la extensión solo cuando corresponde
+    if:
+      - condition: template
+        value_template: >
+          {{ habilitar_acciones_adicionales | bool
+             and trigger is defined
+             and trigger.id in ejecutar_acciones_adicionales_en
+             and trigger.id in ['dispositivo_encendido', 'dispositivo_apagado']
+             and trigger.from_state is not none
+             and trigger.to_state is not none
+             and trigger.from_state.state in ['off', 'on']
+             and trigger.to_state.state != trigger.from_state.state }}
+    then:
+      - alias: Control y acciones adicionales independientes
+        parallel:
+          - alias: Control original
+            sequence: &control_original
+              - alias: Ejecutar la rama correspondiente al evento recibido
                 choose:
-                  # Con máximo: esperar ausencia, apagado físico o el tiempo
-                  # restante del límite absoluto calculado desde el encendido.
+                  # ----------------------------------------------------------
+                  # RAMA 1 — NUEVA PRESENCIA
+                  # ----------------------------------------------------------
                   - conditions:
-                      - condition: template
-                        value_template: "{{ maximo_habilitado | bool }}"
+                      - condition: trigger
+                        id: presencia_detectada
+
+                      # Los días seleccionados aplican a ambos horarios.
+                      - condition: time
+                        weekday: !input dias_permitidos
+
+                      # Autorizar si estamos en el horario normal, o si el clima
+                      # coincide con los estados elegidos y estamos en su horario.
+                      - condition: or
+                        conditions:
+                          - condition: time
+                            after: !input hora_inicio_normal
+                            before: !input hora_fin_normal
+
+                          - condition: and
+                            conditions:
+                              - condition: state
+                                entity_id: !input entidad_clima
+                                state: !input estados_climaticos
+
+                              - condition: time
+                                after: !input hora_inicio_clima
+                                before: !input hora_fin_clima
+
                     sequence:
-                      - alias: Esperar ausencia, apagado o tiempo máximo
-                        wait_for_trigger:
-                          - trigger: state
-                            entity_id: !input sensor_presencia
-                            to: "off"
-                            for: !input tiempo_ausencia
-                            id: ausencia_confirmada
+                      # Esta rama termina inmediatamente después de solicitar ON.
+                      # El cambio a ON dispara la segunda rama en una ejecución paralela.
+                      - alias: Solicitar encendido automático
+                        action: homeassistant.turn_on
+                        target:
+                          entity_id: !input dispositivo_controlado
 
-                          - trigger: state
-                            entity_id: !input dispositivo_controlado
-                            to: "off"
-                            id: apagado_fisico_ciclo
+                  # ----------------------------------------------------------
+                  # RAMA 2 — DISPOSITIVO ENCENDIDO
+                  # ----------------------------------------------------------
+                  - conditions:
+                      - condition: trigger
+                        id: dispositivo_encendido
 
-                        timeout: >
-                          {{ [instante_limite | float(0) - as_timestamp(now()), 0]
-                             | max | int(0) }}
-                        continue_on_timeout: true
+                    sequence:
+                      # El límite absoluto se calcula desde el cambio real a ON. Así, el
+                      # tiempo consumido por la validación también cuenta dentro del máximo.
+                      - alias: Cargar opciones de duración
+                        variables:
+                          maximo_habilitado: !input habilitar_tiempo_maximo
+                          duracion_maxima: !input tiempo_maximo
+                          duracion_validacion: !input tiempo_validacion
 
-                      - alias: Respetar el apagado físico o externo
+                      - alias: Calcular el límite absoluto desde el encendido real
+                        variables:
+                          instante_limite: >
+                            {% set d = duracion_maxima %}
+                            {% set segundos =
+                              (d.days | default(0) | int * 86400) +
+                              (d.hours | default(0) | int * 3600) +
+                              (d.minutes | default(0) | int * 60) +
+                              (d.seconds | default(0) | int) %}
+                            {{ as_timestamp(trigger.to_state.last_changed) + segundos }}
+
+                      # ======================================================
+                      # A. VALIDACIÓN INICIAL
+                      # ======================================================
+                      # Si el encendido ocurrió sin presencia, esperar el tiempo
+                      # configurado. Esto cubre encendidos físicos o externos.
+                      - alias: Validar un encendido iniciado sin presencia
                         if:
-                          - condition: template
-                            value_template: >
-                              {{ wait.trigger is not none and
-                                 wait.trigger.id == 'apagado_fisico_ciclo' }}
+                          - condition: not
+                            conditions:
+                              - condition: state
+                                entity_id: !input sensor_presencia
+                                state: "on"
+
                         then:
-                          - stop: Apagado físico durante el ciclo activo
+                          - alias: Esperar presencia, apagado o el primer límite aplicable
+                            wait_for_trigger:
+                              - trigger: state
+                                entity_id: !input sensor_presencia
+                                to: "on"
+                                id: presencia_durante_validacion
 
-                # Sin máximo: la espera es indefinida, pero la ausencia o el
-                # apagado físico continúan terminando el ciclo.
-                default:
-                  - alias: Esperar ausencia o apagado sin límite máximo
-                    wait_for_trigger:
-                      - trigger: state
-                        entity_id: !input sensor_presencia
-                        to: "off"
-                        for: !input tiempo_ausencia
-                        id: ausencia_confirmada
+                              - trigger: state
+                                entity_id: !input dispositivo_controlado
+                                to: "off"
+                                id: apagado_fisico_validacion
 
-                      - trigger: state
+                            # Si el máximo está habilitado, vence el plazo más corto:
+                            # validación configurada o tiempo restante del ciclo.
+                            timeout: >
+                              {% set d = duracion_validacion %}
+                              {% set validacion =
+                                (d.days | default(0) | int * 86400) +
+                                (d.hours | default(0) | int * 3600) +
+                                (d.minutes | default(0) | int * 60) +
+                                (d.seconds | default(0) | int) %}
+                              {% if maximo_habilitado | bool %}
+                                {% set restante =
+                                  [instante_limite | float(0) - as_timestamp(now()), 0] | max %}
+                                {{ [validacion, restante] | min | int(0) }}
+                              {% else %}
+                                {{ validacion }}
+                              {% endif %}
+                            continue_on_timeout: true
+
+                          # Si el usuario apagó físicamente, finalizar este ciclo.
+                          # Se usa wait.trigger.id para que un reencendido rápido no
+                          # sea apagado por esta ejecución anterior.
+                          - alias: Finalizar si el dispositivo fue apagado externamente
+                            if:
+                              - condition: template
+                                value_template: >
+                                  {{ wait.trigger is not none and
+                                     wait.trigger.id == 'apagado_fisico_validacion' }}
+                            then:
+                              - stop: Apagado físico durante la validación inicial
+
+                      # Si el dispositivo ya no está encendido, no continuar.
+                      - condition: state
                         entity_id: !input dispositivo_controlado
-                        to: "off"
-                        id: apagado_fisico_ciclo
+                        state: "on"
 
-                  - alias: Respetar el apagado físico o externo
-                    if:
-                      - condition: template
-                        value_template: >
-                          {{ wait.trigger is not none and
-                             wait.trigger.id == 'apagado_fisico_ciclo' }}
-                    then:
-                      - stop: Apagado físico durante el ciclo activo
+                      # ======================================================
+                      # B. CICLO CON PRESENCIA
+                      # ======================================================
+                      - alias: Administrar el ciclo según exista presencia
+                        if:
+                          - condition: state
+                            entity_id: !input sensor_presencia
+                            state: "on"
 
-              # Por ausencia confirmada o por timeout máximo, apagar.
-              - condition: state
-                entity_id: !input dispositivo_controlado
-                state: "on"
+                        then:
+                          - alias: Esperar con límite máximo o de forma indefinida
+                            choose:
+                              # Con máximo: esperar ausencia, apagado físico o el tiempo
+                              # restante del límite absoluto calculado desde el encendido.
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ maximo_habilitado | bool }}"
+                                sequence:
+                                  - alias: Esperar ausencia, apagado o tiempo máximo
+                                    wait_for_trigger:
+                                      - trigger: state
+                                        entity_id: !input sensor_presencia
+                                        to: "off"
+                                        for: !input tiempo_ausencia
+                                        id: ausencia_confirmada
 
-              - alias: Apagar por ausencia o tiempo máximo
-                action: homeassistant.turn_off
-                target:
-                  entity_id: !input dispositivo_controlado
+                                      - trigger: state
+                                        entity_id: !input dispositivo_controlado
+                                        to: "off"
+                                        id: apagado_fisico_ciclo
 
-            else:
-              # Terminó la validación inicial y aún no hay presencia.
-              - condition: state
-                entity_id: !input dispositivo_controlado
-                state: "on"
+                                    timeout: >
+                                      {{ [instante_limite | float(0) - as_timestamp(now()), 0]
+                                         | max | int(0) }}
+                                    continue_on_timeout: true
 
-              - alias: Apagar al finalizar la validación sin presencia
-                action: homeassistant.turn_off
-                target:
-                  entity_id: !input dispositivo_controlado
+                                  - alias: Respetar el apagado físico o externo
+                                    if:
+                                      - condition: template
+                                        value_template: >
+                                          {{ wait.trigger is not none and
+                                             wait.trigger.id == 'apagado_fisico_ciclo' }}
+                                    then:
+                                      - stop: Apagado físico durante el ciclo activo
+
+                            # Sin máximo: la espera es indefinida, pero la ausencia o el
+                            # apagado físico continúan terminando el ciclo.
+                            default:
+                              - alias: Esperar ausencia o apagado sin límite máximo
+                                wait_for_trigger:
+                                  - trigger: state
+                                    entity_id: !input sensor_presencia
+                                    to: "off"
+                                    for: !input tiempo_ausencia
+                                    id: ausencia_confirmada
+
+                                  - trigger: state
+                                    entity_id: !input dispositivo_controlado
+                                    to: "off"
+                                    id: apagado_fisico_ciclo
+
+                              - alias: Respetar el apagado físico o externo
+                                if:
+                                  - condition: template
+                                    value_template: >
+                                      {{ wait.trigger is not none and
+                                         wait.trigger.id == 'apagado_fisico_ciclo' }}
+                                then:
+                                  - stop: Apagado físico durante el ciclo activo
+
+                          # Por ausencia confirmada o por timeout máximo, apagar.
+                          - condition: state
+                            entity_id: !input dispositivo_controlado
+                            state: "on"
+
+                          - alias: Apagar por ausencia o tiempo máximo
+                            action: homeassistant.turn_off
+                            target:
+                              entity_id: !input dispositivo_controlado
+
+                        else:
+                          # Terminó la validación inicial y aún no hay presencia.
+                          - condition: state
+                            entity_id: !input dispositivo_controlado
+                            state: "on"
+
+                          - alias: Apagar al finalizar la validación sin presencia
+                            action: homeassistant.turn_off
+                            target:
+                              entity_id: !input dispositivo_controlado
+          - alias: Acciones adicionales
+            sequence:
+              - alias: Ejecutar el bloque adicional
+                continue_on_error: true
+                sequence: !input acciones_adicionales
+    else: *control_original
 
 # La rama de presencia es muy corta. La rama del dispositivo es la única
 # que conserva temporizadores. No se generan temporizadores duplicados.

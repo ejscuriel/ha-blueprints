@@ -5,8 +5,8 @@
 # ║  Diseñado para crear una automatización independiente por pareja.          ║
 # ║                                                                            ║
 # ║  Autor       : Eduardo Sánchez Curiel — EVOTECH LTDA                       ║
-# ║  Versión     : 2.0.0                                                       ║
-# ║  Fecha       : 2026-09-02                                                  ║
+# ║  Versión     : 2.1.0                                                       ║
+# ║  Fecha       : 2026-10-10                                                  ║
 # ║  Licencia    : MIT                                                         ║
 # ║  Requisitos  : Home Assistant 2026.1.0 o superior                         ║
 # ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -28,7 +28,10 @@ blueprint:
 
     Requiere **Home Assistant 2026.1.0 o posterior**.
 
-    **Versión 2.0.0**
+    **Versión 2.1.0**
+
+    **Acciones opcionales:** sección avanzada con check desactivado por defecto.
+    Las automatizaciones existentes mantienen sus parámetros y lógica de control.
 
     www.evotechltda.com · admin@evotechltda.com
 
@@ -89,8 +92,62 @@ blueprint:
               min: 2700
               max: 6500
 
+
+    acciones_opcionales:
+      name: "🧩 Acciones opcionales (avanzado)"
+      icon: mdi:playlist-plus
+      collapsed: true
+      description: >
+        Extensión voluntaria. Desactivada conserva el funcionamiento original.
+        Configurar acciones o eventos no activa el check.
+      input:
+        habilitar_acciones_adicionales:
+          name: Ejecutar acciones adicionales
+          description: >
+            Activa únicamente el bloque adicional. Puedes desmarcarlo sin borrar
+            las acciones guardadas. Desactivado por defecto.
+          default: false
+          selector:
+            boolean:
+
+        acciones_adicionales:
+          name: Acciones adicionales
+          description: >
+            Se ejecutan cuando ambos extremos quedan sincronizados en el estado elegido.
+            Una sincronización produce un solo evento adicional.
+            Para secuencias largas, llama a un script mediante script.turn_on.
+          default: []
+          selector:
+            action:
+
+        ejecutar_acciones_adicionales_en:
+          name: Cuándo ejecutar las acciones adicionales
+          description: >
+            Puedes elegir encendido, apagado o ambos. Una selección vacía no
+            ejecuta acciones. Este campo no activa el check general.
+          default:
+            - pareja_encendida
+          selector:
+            select:
+              mode: list
+              multiple: true
+              options:
+                - label: Al quedar interruptor y luz encendidos
+                  value: pareja_encendida
+                - label: Al quedar interruptor y luz apagados
+                  value: pareja_apagada
+
+variables:
+  habilitar_acciones_adicionales: !input habilitar_acciones_adicionales
+  ejecutar_acciones_adicionales_en: !input ejecutar_acciones_adicionales_en
+
 # Cada disparador exige una transición real entre off y on. La recuperación
 # desde unknown/unavailable no modifica la entidad asociada automáticamente.
+# Estos inputs solo se usan para detectar que la sincronización ya terminó.
+trigger_variables:
+  _interruptor_acciones: !input interruptor
+  _luz_acciones: !input luz
+
 triggers:
   - trigger: state
     alias: Interruptor encendido
@@ -119,6 +176,24 @@ triggers:
     from: "on"
     to: "off"
     id: luz_apagada
+
+  # Separar el evento de pareja sincronizada evita ejecutar dos veces el
+  # bloque por el eco entre interruptor y luz. No envía órdenes de control.
+  - trigger: template
+    alias: Pareja sincronizada encendida para acciones opcionales
+    value_template: >
+      {{ is_state(_interruptor_acciones, 'on')
+         and is_state(_luz_acciones, 'on') }}
+    enabled: !input habilitar_acciones_adicionales
+    id: pareja_encendida
+
+  - trigger: template
+    alias: Pareja sincronizada apagada para acciones opcionales
+    value_template: >
+      {{ is_state(_interruptor_acciones, 'off')
+         and is_state(_luz_acciones, 'off') }}
+    enabled: !input habilitar_acciones_adicionales
+    id: pareja_apagada
 
 conditions: []
 
@@ -175,6 +250,22 @@ actions:
             action: switch.turn_off
             target:
               entity_id: !input interruptor
+
+
+  # El control original ya finalizó. Solo los eventos de pareja sincronizada
+  # ejecutan la extensión; los cuatro disparadores originales no la duplican.
+  - alias: Ejecutar las acciones opcionales seleccionadas
+    if:
+      - condition: template
+        value_template: >
+          {{ habilitar_acciones_adicionales | bool
+             and trigger is defined
+             and trigger.id in ejecutar_acciones_adicionales_en
+             and trigger.id in ['pareja_encendida', 'pareja_apagada'] }}
+    then:
+      - alias: Ejecutar el bloque adicional
+        continue_on_error: true
+        sequence: !input acciones_adicionales
 
 # Una ejecución nueva sustituye a la anterior de esta pareja solamente.
 mode: restart
